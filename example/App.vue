@@ -6,14 +6,14 @@
 </template>
 
 <script>
-import Subscription from './components/Subscription'
+import Subscription from './components/Subscription';
 
 export default {
   name: 'app',
   components: {
-    Subscription
-  }
-}
+    Subscription,
+  },
+};
 </script>
 
 <style>

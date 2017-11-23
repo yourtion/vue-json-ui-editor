@@ -33,6 +33,18 @@
         "title": "Please select your list subscription"
       }
     },
+    "lists2": {
+      "type": "array",
+      "title": "List2",
+      "anyOf": [
+        { "value": "daily", "label": "Daily New" },
+        { "value": "promotion", "label": "Promotion" }
+      ],
+      "attrs": {
+        "placeholder": "Select your list subscription",
+        "title": "Please select your list subscription"
+      }
+    },
     "source": {
       "type": "string",
       "maxLength": 120,
