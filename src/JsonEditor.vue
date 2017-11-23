@@ -1,5 +1,6 @@
 <script>
   import { loadFields } from './parser';
+  import { initChild, getChild } from './utils';
   const option = { native: true };
   const components = {
     title: { component: 'h1', option },
@@ -53,12 +54,14 @@
        */
       inputWrappingClass: { type: String },
     },
-    data: () => ({
-      default: {},
-      fields: {},
-      error: null,
-      data: {},
-    }),
+    data() {
+      return {
+        default: {},
+        fields: {},
+        error: null,
+        data: {},
+      };
+    },
     created() {
       loadFields(this, JSON.parse(JSON.stringify(this.schema)));
       this.default = { ...this.value };
@@ -83,138 +86,159 @@
         nodes.push(createElement(
           components.error.component, errorOptions, errorNodes));
       }
-      if (Object.keys(this.fields).length) {
+      const allFormNodes = [];
+      function createForm(fields, sub) {
         const formNodes = [];
-        Object.keys(this.fields).forEach((key) => {
-          const field = this.fields[key];
-          if(field.$sub) return;
-          if (!field.value) {
-            field.value = this.value[field.name];
-          }
-          const element = field.hasOwnProperty('items') && field.type !== 'select'
-            ? components[`${ field.type }group`] || defaultGroup
-            : components[field.type] || defaultInput;
-          const fieldOptions = this.elementOptions(element, field, field);
-          const children = [];
-          const hasMultitpleElements = false;
-          const input = {
-            ref: field.name,
-            domProps: {
-              value: this.value[field.name],
-            },
-            on: {
-              input: (event) => {
-                const value = event && event.target ? event.target.value : event;
-                this.$set(this.data, field.name, value);
-                /**
-                 * Fired synchronously when the value of an element is changed.
-                 */
-                this.$emit('input', this.data);
+        if (Object.keys(fields).length) {
+          Object.keys(fields).forEach((key) => {
+            if(key === '$sub') return;
+            const field = fields[key];
+            if(field.$sub) {
+              return createForm.call(this, field, [ key ]);
+            }
+            const fieldName = field.name;
+            const fieldValue = getChild(this.value, field.name.split('.'));
+            if (!field.value) {
+              field.value = fieldValue;
+            }
+            const element = field.hasOwnProperty('items') && field.type !== 'select'
+              ? components[`${ field.type }group`] || defaultGroup
+              : components[field.type] || defaultInput;
+            const fieldOptions = this.elementOptions(element, field, field);
+            const children = [];
+            const hasMultitpleElements = false;
+            
+            const input = {
+              ref: fieldName,
+              domProps: {
+                value: fieldValue,
               },
-              change: this.changed,
-            },
-            ...fieldOptions,
-          };
-          delete field.value;
-          switch (field.type) {
-          case 'textarea':
-            if (element.option.native) {
-              input.domProps.innerHTML = this.value[field.name];
-            }
-            break;
-          case 'radio':
-          case 'checkbox':
-            if (field.hasOwnProperty('items')) {
-              field.items.forEach((item) => {
-                const itemOptions = this.elementOptions(
-                    components[field.type], item, item, item);
-                children.push(createElement(
-                    components[field.type].component, itemOptions, item.label));
-              });
-            }
-            break;
-          case 'select':
-            if (!field.required) {
-              children.push(createElement(components.option.component));
-            }
-            field.items.forEach((option) => {
-              const optionOptions = this.elementOptions(components.option, {
-                value: option.value,
-              }, field);
-              children.push(createElement(components.option.component, {
-                domProps: {
+              on: {
+                input: (event) => {
+                  const value = event && event.target ? event.target.value : event;
+                  const ns = field.name.split('.');
+                  const n = ns.pop();
+                  const ret = (ns.length > 0 ? initChild(this.data, ns) : this.data);
+                  this.$set(ret, n, value);
+                  /**
+                   * Fired synchronously when the value of an element is changed.
+                   */
+                  this.$emit('input', this.data);
+                },
+                change: this.changed,
+              },
+              ...fieldOptions,
+            };
+            delete field.value;
+            switch (field.type) {
+            case 'textarea':
+              if (element.option.native) {
+                input.domProps.innerHTML = fieldValue;
+              }
+              break;
+            case 'radio':
+            case 'checkbox':
+              if (field.hasOwnProperty('items')) {
+                field.items.forEach((item) => {
+                  const itemOptions = this.elementOptions(
+                      components[field.type], item, item, item);
+                  children.push(createElement(
+                      components[field.type].component, itemOptions, item.label));
+                });
+              }
+              break;
+            case 'select':
+              if (!field.required) {
+                children.push(createElement(components.option.component));
+              }
+              field.items.forEach((option) => {
+                const optionOptions = this.elementOptions(components.option, {
                   value: option.value,
-                },
-                ...optionOptions,
-              }, option.label));
-            });
-            break;
-          }
-          const inputElement = hasMultitpleElements
-            ? createElement(element.component, input, children)
-            : createElement(element.component, input, children);
-          const formControlsNodes = [];
-          if (field.label && !option.disableWrappingLabel) {
-            const labelOptions = this.elementOptions(components.label, field, field);
-            const labelNodes = [];
-            if (components.label.option.native) {
-              labelNodes.push(createElement('span', {
-                attrs: {
-                  'data-required-field': field.required ? 'true' : 'false',
-                },
-              }, field.label));
+                }, field);
+                children.push(createElement(components.option.component, {
+                  domProps: {
+                    value: option.value,
+                  },
+                  ...optionOptions,
+                }, option.label));
+              });
+              break;
             }
-            labelNodes.push(inputElement);
-            if (field.description) {
-              labelNodes.push(createElement('br'));
-              labelNodes.push(createElement('small', field.description));
+            const inputElement = hasMultitpleElements
+              ? createElement(element.component, input, children)
+              : createElement(element.component, input, children);
+            const formControlsNodes = [];
+            if (field.label && !option.disableWrappingLabel) {
+              const labelOptions = this.elementOptions(components.label, field, field);
+              const labelNodes = [];
+              if (components.label.option.native) {
+                labelNodes.push(createElement('span', {
+                  attrs: {
+                    'data-required-field': field.required ? 'true' : 'false',
+                  },
+                }, field.label));
+              }
+              labelNodes.push(inputElement);
+              if (field.description) {
+                labelNodes.push(createElement('br'));
+                labelNodes.push(createElement('small', field.description));
+              }
+              formControlsNodes.push(createElement(
+                components.label.component, labelOptions, labelNodes));
+            } else {
+              formControlsNodes.push(inputElement);
+              if (field.description) {
+                formControlsNodes.push(createElement('br'));
+                formControlsNodes.push(createElement('small', field.description));
+              }
             }
-            formControlsNodes.push(createElement(
-              components.label.component, labelOptions, labelNodes));
-          } else {
-            formControlsNodes.push(inputElement);
-            if (field.description) {
-              formControlsNodes.push(createElement('br'));
-              formControlsNodes.push(createElement('small', field.description));
+            if (this.inputWrappingClass) {
+              formNodes.push(createElement('div', {
+                class: this.inputWrappingClass,
+              }, formControlsNodes));
+            } else {
+              formControlsNodes.forEach((node) => formNodes.push(node));
             }
-          }
-          if (this.inputWrappingClass) {
-            formNodes.push(createElement('div', {
-              class: this.inputWrappingClass,
-            }, formControlsNodes));
-          } else {
-            formControlsNodes.forEach((node) => formNodes.push(node));
-          }
-        });
-        const labelOptions = this.elementOptions(components.label);
-        const button = this.$slots.hasOwnProperty('default')
+          });
+        }
+        if(sub) {
+          allFormNodes.push(createElement('div', {
+            class: 'sub',
+          }, formNodes));
+        } else {
+          allFormNodes.push(...formNodes);
+        }
+      }
+
+      createForm.call(this, this.fields);
+      const labelOptions = this.elementOptions(components.label);
+      const button = this.$slots.hasOwnProperty('default')
           ? { component: this.$slots.default, option }
           : components.button;
-        if (button.component instanceof Array) {
-          formNodes.push(createElement(
+      if (button.component instanceof Array) {
+        allFormNodes.push(createElement(
             components.label.component, labelOptions, button.component));
-        } else {
-          const buttonOptions = this.elementOptions(button);
-          const buttonElement = createElement(button.component, buttonOptions, button.option.label);
-          formNodes.push(createElement(
+      } else {
+        const buttonOptions = this.elementOptions(button);
+        const buttonElement = createElement(button.component, buttonOptions, button.option.label);
+        allFormNodes.push(createElement(
             components.label.component, labelOptions, [ buttonElement ]));
-        }
-        const formOptions = this.elementOptions(components.form, {
-          autocomplete: this.autocomplete,
-          novalidate: this.novalidate,
-        });
-        nodes.push(createElement(components.form.component, {
-          ref: '__form',
-          on: {
-            submit: (event) => {
-              event.stopPropagation();
-              this.submit(event);
-            },
-            invalid: this.invalid,
-          },
-          ...formOptions,
-        }, formNodes));
       }
+      const formOptions = this.elementOptions(components.form, {
+        autocomplete: this.autocomplete,
+        novalidate: this.novalidate,
+      });
+      nodes.push(createElement(components.form.component, {
+        ref: '__form',
+        on: {
+          submit: (event) => {
+            event.stopPropagation();
+            this.submit(event);
+          },
+          invalid: this.invalid,
+        },
+        ...formOptions,
+      }, allFormNodes));
       return createElement('div', nodes);
     },
     mounted() {
@@ -287,7 +311,11 @@
        */
       reset() {
         for (const key in this.default) {
-          this.$set(this.data, key, this.default[key]);
+          const ns = key.split('.');
+          const n = ns.pop();
+          const ret = (ns.length > 0 ? initChild(this.data, ns) : this.data);
+          const value = getChild(this.default, key.split('.'));
+          this.$set(ret, n, value);
         }
       },
       /**

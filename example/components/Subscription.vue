@@ -18,16 +18,24 @@
     const model = vm.data;
     const rules = {};
 
-    Object.keys(vm.fields).forEach((key) => {
-      const field = vm.fields[key];
-      const type = field.schemaType === 'array' && field.type === 'radio' ? 'string' : field.schemaType;
-      const required = field.required;
-      const message = field.title;
-      const trigger = [ 'radio', 'checkbox', 'select' ].includes(field.type) ? 'change' : 'blur';
+    function parseField(fields) {
+      Object.keys(fields).forEach((key) => {
+        const field = fields[key];
+        if(field.$sub) {
+          return parseField(field);
+        }
+        if(!field.name) return;
+        const type = field.schemaType === 'array' && field.type === 'radio' ? 'string' : field.schemaType;
+        const required = field.required;
+        const message = field.title;
+        const trigger = [ 'radio', 'checkbox', 'select' ].includes(field.type) ? 'change' : 'blur';
 
-      // http://element.eleme.io/#/en-US/component/form#validation
-      rules[field.name] = { type, required, message, trigger };
-    });
+        // http://element.eleme.io/#/en-US/component/form#validation
+        rules[field.name] = { type, required, message, trigger };
+      });
+    }
+
+    parseField(vm.fields);
 
     // returning the form props
     return { labelWidth, rules, model };
@@ -68,16 +76,22 @@
   export default {
     data: () => ({
       schema: require('@/schema/newsletter'),
-      model: {},
+      model: {
+        name: 'ad',
+        sub: {
+          sName: 'as',
+        },
+      },
     }),
     methods: {
-      submit(e) {
+      submit(_e) {
         // this.$refs.JsonEditor.form() returns the ElementUI's form instance
 
         this.$refs.JsonEditor.form().validate((valid) => {
           if (valid) {
             // this.model contains the valid data according your JSON Schema.
             // You can submit your model to the server here
+            // eslint-disable-next-line no-console
             console.log('model', JSON.stringify(this.model));
             this.$refs.JsonEditor.clearErrorMessage();
           } else {
@@ -118,5 +132,9 @@
 
   .el-alert {
     margin-bottom: 15px
+  }
+
+  .el-form .sub {
+    margin-left: 10%;
   }
 </style>

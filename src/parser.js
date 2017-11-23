@@ -1,8 +1,9 @@
 'use strict';
+const { initChild, getChild } = require('./utils');
 
 const ARRAY_KEYWORDS = [ 'anyOf', 'oneOf', 'enum' ];
 
-const setCommonFields = (schema, field) => {
+const setCommonFields = (schema, field, schemaName) => {
   // eslint-disable-next-line no-nested-ternary
   field.value = schema.hasOwnProperty('default')
     ? schema.default
@@ -13,19 +14,24 @@ const setCommonFields = (schema, field) => {
   field.description = schema.description || '';
   field.required = schema.required || false;
   field.disabled = schema.disabled || false;
+  field.name = schemaName;
 };
 
 const setFormValue = (vm, field) => {
-  if (vm.value && !vm.value[field.name]) {
-    vm.$set(vm.value, field.name, field.value);
+  const ns = field.name.split('.');
+  const vmValue = getChild(vm.value, ns);
+  if (vm.value && !vmValue) {
+    const n = ns.pop();
+    const ret = (ns.length > 0 ? initChild(vm.value, ns) : vm.value);
+    vm.$set(ret, n, field.value);
   }
 };
 
 
-export const parseBoolean = (vm, schema) => {
+export const parseBoolean = (vm, schema, schemaName) => {
   const field = schema.attrs || {};
 
-  setCommonFields(schema, field);
+  setCommonFields(schema, field, schemaName);
 
   if (!field.type) {
     field.type = 'checkbox';
@@ -34,7 +40,7 @@ export const parseBoolean = (vm, schema) => {
   field.checked = schema.checked || false;
   
   if (schema.name) {
-    field.name = schema.name;
+    field.name = schemaName;
 
     setFormValue(vm, field);
   }
@@ -42,7 +48,7 @@ export const parseBoolean = (vm, schema) => {
   return field;
 };
 
-export const parseString = (vm, schema) => {
+export const parseString = (vm, schema, schemaName) => {
   const field = schema.attrs || {};
 
   if (!field.type) {
@@ -76,12 +82,13 @@ export const parseString = (vm, schema) => {
       field.pattern = schema.format;
       break;
     }
+    field.name = schemaName;
   }
 
-  setCommonFields(schema, field);
+  setCommonFields(schema, field, schemaName);
 
   if (schema.name) {
-    field.name = schema.name;
+    field.name = schemaName;
 
     setFormValue(vm, field);
   }
@@ -107,10 +114,10 @@ export const parseItems = (items) => {
   });
 };
 
-export const parseArray = (vm, schema) => {
+export const parseArray = (vm, schema, schemaName) => {
   const field = schema.attrs || {};
 
-  setCommonFields(schema, field);
+  setCommonFields(schema, field, schemaName);
 
   field.multiple = schema.minItems > 1;
   field.items = [];
@@ -142,7 +149,7 @@ export const parseArray = (vm, schema) => {
   }
 
   if (schema.name) {
-    field.name = schema.name;
+    field.name = schemaName;
 
     setFormValue(vm, field);
   }
@@ -150,11 +157,11 @@ export const parseArray = (vm, schema) => {
   return field;
 };
 
-
-export const loadFields = (vm, schema, fields = vm.fields) => {
+export const loadFields = (vm, schema, fields = vm.fields, sub) => {
   if (!schema || schema.visible === false) {
     return;
   }
+  const schemaName = sub ? sub.join('.') : schema.name;
 
   switch (schema.type) {
   case 'object':
@@ -168,19 +175,19 @@ export const loadFields = (vm, schema, fields = vm.fields) => {
           }
         }
       }
-      if(schema.name && !fields[schema.name]) {
-        fields[schema.name] = { $sub: true };
+      if(schema.name && !fields[schemaName]) {
+        fields[schemaName] = { $sub: true };
       }
-      loadFields(vm, schema.properties[key], schema.name ? fields[schema.name] : undefined);
+      loadFields(vm, schema.properties[key], schema.name ? fields[schemaName] : undefined, sub ? [ ...sub, key ] : [ key ]);
     }
     break;
 
   case 'boolean':
-    fields[schema.name] = parseBoolean(vm, schema);
+    fields[schemaName] = parseBoolean(vm, schema, schemaName);
     break;
 
   case 'array':
-    fields[schema.name] = parseArray(vm, schema);
+    fields[schemaName] = parseArray(vm, schema, schemaName);
     break;
 
   case 'integer':
@@ -192,11 +199,11 @@ export const loadFields = (vm, schema, fields = vm.fields) => {
           type: schema.type,
           enum: schema[keyword],
         };
-        fields[schema.name] = parseArray(vm, schema);
+        fields[schemaName] = parseArray(vm, schema, schemaName);
         return;
       }
     }
-    fields[schema.name] = parseString(vm, schema);
+    fields[schemaName] = parseString(vm, schema, schemaName);
     break;
   }
 };
