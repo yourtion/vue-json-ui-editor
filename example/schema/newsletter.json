@@ -24,6 +24,31 @@
         "title": "Please enter your email"
       }
     },
+    "sub": {
+      "type": "object",
+      "properties": {
+        "sName": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "title": "SubName",
+          "attrs": {
+            "placeholder": "Sub Full Name",
+            "title": "Please enter your full name"
+          }
+        },
+        "sEmail": {
+          "type": "string",
+          "maxLength": 120,
+          "title": "SubEmail",
+          "attrs": {
+            "type": "email",
+            "placeholder": "Sub Email",
+            "title": "Please enter your email"
+          }
+        }
+      }
+    },
     "lists": {
       "type": "string",
       "title": "List",

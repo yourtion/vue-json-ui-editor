@@ -150,7 +150,8 @@ export const parseArray = (vm, schema) => {
   return field;
 };
 
-export const loadFields = (vm, schema) => {
+
+export const loadFields = (vm, schema, fields = vm.fields) => {
   if (!schema || schema.visible === false) {
     return;
   }
@@ -167,17 +168,19 @@ export const loadFields = (vm, schema) => {
           }
         }
       }
-
-      loadFields(vm, schema.properties[key]);
+      if(schema.name && !fields[schema.name]) {
+        fields[schema.name] = { $sub: true };
+      }
+      loadFields(vm, schema.properties[key], schema.name ? fields[schema.name] : undefined);
     }
     break;
 
   case 'boolean':
-    vm.fields.push(parseBoolean(vm, schema));
+    fields[schema.name] = parseBoolean(vm, schema);
     break;
 
   case 'array':
-    vm.fields.push(parseArray(vm, schema));
+    fields[schema.name] = parseArray(vm, schema);
     break;
 
   case 'integer':
@@ -189,11 +192,11 @@ export const loadFields = (vm, schema) => {
           type: schema.type,
           enum: schema[keyword],
         };
-        vm.fields.push(parseArray(vm, schema));
+        fields[schema.name] = parseArray(vm, schema);
         return;
       }
     }
-    vm.fields.push(parseString(vm, schema));
+    fields[schema.name] = parseString(vm, schema);
     break;
   }
 };

@@ -55,7 +55,7 @@
     },
     data: () => ({
       default: {},
-      fields: [],
+      fields: {},
       error: null,
       data: {},
     }),
@@ -83,9 +83,11 @@
         nodes.push(createElement(
           components.error.component, errorOptions, errorNodes));
       }
-      if (this.fields.length) {
+      if (Object.keys(this.fields).length) {
         const formNodes = [];
-        this.fields.forEach((field) => {
+        Object.keys(this.fields).forEach((key) => {
+          const field = this.fields[key];
+          if(field.$sub) return;
           if (!field.value) {
             field.value = this.value[field.name];
           }
