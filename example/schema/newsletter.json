@@ -107,13 +107,30 @@
         "placeholder": "How did you hear about us?"
       }
     },
+    "rate": {
+      "type": "number",
+      "title": "Rate",
+      "default": 2,
+      "attrs": {
+        "compoment": "el-rate",
+        "allow-half": true
+      }
+    },
+    "color": {
+      "type": "string",
+      "title": "Color",
+      "default": "#409EFF",
+      "attrs": {
+        "compoment": "el-color-picker"
+      }
+    },
     "agree": {
       "type": "boolean",
       "title": "Agree",
       "description": "You agree to receive occasional updates and special offers for vue-json-schema updates.",
       "default": false,
       "attrs": {
-        "type": "checkbox"
+        "compoment": "el-switch"
       }
     }
   },

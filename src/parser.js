@@ -9,7 +9,7 @@ const setCommonFields = (schema, field, schemaName) => {
     ? schema.default
     : field.hasOwnProperty('value') ? field.value : '';
 
-  field.schemaType = schema.type;
+  field.schemaType = schema.compoment || schema.type;
   field.label = schema.title || '';
   field.description = schema.description || '';
   field.required = schema.required || false;
@@ -82,7 +82,6 @@ export const parseString = (vm, schema, schemaName) => {
       field.pattern = schema.format;
       break;
     }
-    field.name = schemaName;
   }
 
   setCommonFields(schema, field, schemaName);

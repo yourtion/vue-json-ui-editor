@@ -111,7 +111,9 @@
             if (!field.value) {
               field.value = fieldValue;
             }
-            const element = field.hasOwnProperty('items') && field.type !== 'select'
+            const customComponent = field.compoment ? { compoment: field.compoment, option: { native: true }} : undefined;
+            // eslint-disable-next-line
+            const element = field.compoment ? customComponent : field.hasOwnProperty('items') && field.type !== 'select'
               ? components[`${ field.type }group`] || defaultGroup
               : components[field.type] || defaultInput;
             const fieldOptions = this.elementOptions(element, field, field);
@@ -174,9 +176,15 @@
               });
               break;
             }
-            const inputElement = hasMultitpleElements
+            let inputElement;
+            if(field.compoment) {
+              inputElement = createElement(field.compoment, input);
+            } else {
+              inputElement = hasMultitpleElements
               ? createElement(element.component, input, children)
               : createElement(element.component, input, children);
+            }
+            
             const formControlsNodes = [];
             if (field.label && !option.disableWrappingLabel) {
               const labelOptions = this.elementOptions(components.label, field, field);
