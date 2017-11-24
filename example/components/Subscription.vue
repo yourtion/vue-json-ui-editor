@@ -91,6 +91,7 @@
           if (valid) {
             // this.model contains the valid data according your JSON Schema.
             // You can submit your model to the server here
+            
             // eslint-disable-next-line no-console
             console.log('model', JSON.stringify(this.model));
             this.$refs.JsonEditor.clearErrorMessage();
@@ -134,7 +135,11 @@
     margin-bottom: 15px
   }
 
-  .el-form .sub {
+  .el-form .sub-1 {
     margin-left: 10%;
+  }
+
+  .el-form .sub-2 {
+    margin-left: 20%;
   }
 </style>

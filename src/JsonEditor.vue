@@ -1,6 +1,6 @@
 <script>
   import { loadFields } from './parser';
-  import { initChild, getChild } from './utils';
+  import { initChild, getChild, setVal } from './utils';
   const option = { native: true };
   const components = {
     title: { component: 'h1', option },
@@ -87,14 +87,24 @@
           components.error.component, errorOptions, errorNodes));
       }
       const allFormNodes = [];
+      const formNode = {
+        root: {},
+      };
       function createForm(fields, sub) {
-        const formNodes = [];
+        let node;
+        if(sub) {
+          node = setVal(formNode, sub, []);
+        } else {
+          node = formNode.root;
+        }
+       
         if (Object.keys(fields).length) {
           Object.keys(fields).forEach((key) => {
+            const formNodes = [];
             if(key === '$sub') return;
             const field = fields[key];
             if(field.$sub) {
-              return createForm.call(this, field, [ key ]);
+              return createForm.call(this, field, sub ? [ ...sub, key ] : [ key ]);
             }
             const fieldName = field.name;
             const fieldValue = getChild(this.value, field.name.split('.'));
@@ -199,18 +209,34 @@
             } else {
               formControlsNodes.forEach((node) => formNodes.push(node));
             }
+            if(sub) {
+              node.push(formNodes[0]);
+            } else {
+              node[key] = formNodes[0];
+            }
           });
         }
+      }
+      createForm.call(this, this.fields);
+
+      function createNode(fields, sub) {
         if(sub) {
           allFormNodes.push(createElement('div', {
-            class: 'sub',
-          }, formNodes));
-        } else {
-          allFormNodes.push(...formNodes);
+            class: 'sub-' + sub.length,
+          }, formNode[sub[sub.length - 1]]));
         }
+        Object.keys(fields).forEach((key) => {
+          if(key === '$sub') return;
+          const field = fields[key];
+          if(field.$sub) {
+            createNode.call(this, field, sub ? [ ...sub, key ] : [ key ]);
+          } else if(formNode.root[key]) {
+            allFormNodes.push(formNode.root[key]);
+          }
+        });
       }
-
-      createForm.call(this, this.fields);
+      createNode.call(this, this.fields);
+      
       const labelOptions = this.elementOptions(components.label);
       const button = this.$slots.hasOwnProperty('default')
           ? { component: this.$slots.default, option }

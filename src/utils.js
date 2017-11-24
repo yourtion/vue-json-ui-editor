@@ -50,7 +50,7 @@ export function initChild(data, ns) {
 }
 
 export function setVal(data, n, v) {
-  const ns = n.split('.');
+  const ns = Array.isArray(n) ? n : n.split('.');
   // eslint-disable-next-line
   n = ns.pop();
   const ret = (ns.length > 0 ? initChild(data, ns) : data);

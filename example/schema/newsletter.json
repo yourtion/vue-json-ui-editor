@@ -46,8 +46,35 @@
             "placeholder": "Sub Email",
             "title": "Please enter your email"
           }
+        },
+        "sub2": {
+          "type": "object",
+          "properties": {
+            "sName2": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 80,
+              "title": "Sub2Name",
+              "attrs": {
+                "placeholder": "Sub2 Full Name",
+                "title": "Please enter your full name"
+              }
+            },
+            "sEmail2": {
+              "type": "string",
+              "maxLength": 120,
+              "title": "Sub2Email",
+              "attrs": {
+                "type": "email",
+                "placeholder": "Sub2 Email",
+                "title": "Please enter your email"
+              }
+            }
+          },
+          "required": [ "sName2" ]
         }
-      }
+      },
+      "required": ["sEmail"]
     },
     "lists": {
       "type": "string",
@@ -91,5 +118,5 @@
     }
   },
   "additionalProperties": false,
-  "required": ["name", "email", "lists", "objs.name1"]
+  "required": ["name", "email", "lists"]
 }
