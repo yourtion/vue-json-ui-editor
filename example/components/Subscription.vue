@@ -1,14 +1,27 @@
 <template>
-  <el-card class="form">
-    <json-editor ref="JsonEditor" :schema="schema" v-model="model">
-      <el-button type="primary" @click="submit">Subscribe</el-button>
-      <el-button type="reset">Reset</el-button>
-    </json-editor>
-  </el-card>
+<el-row>
+  <el-col :span="12">
+    <el-card class="form">
+      <json-editor ref="JsonEditor" :schema="schema" v-model="model">
+        <el-button type="primary" @click="submit">Subscribe</el-button>
+        <el-button type="reset">Reset</el-button>
+      </json-editor>
+    </el-card>
+  </el-col>
+  <el-col :span="12">
+      <el-card class="box-card">
+      <div slot="header" class="clearfix">
+        <span>Model</span>
+      </div>
+      <pre class="json">{{ jsonString }}</pre>
+    </el-card>
+  </el-col>
+</el-row>
 </template>
 
 <script>
-  import JsonEditor from '../../src/JsonEditor';
+  // import JsonEditor from '../../lib/json-editor.min.js';
+  import JsonEditor from '../../src/JsonEditor.vue';
   import { Option } from 'element-ui';
 
   JsonEditor.setComponent('form', 'el-form', ({ vm }) => {
@@ -25,13 +38,20 @@
           return parseField(field);
         }
         if(!field.name) return;
+        rules[field.name] = [];
+        // http://element.eleme.io/#/en-US/component/form#validation
         const type = field.schemaType === 'array' && field.type === 'radio' ? 'string' : field.schemaType;
         const required = field.required;
         const message = field.title;
         const trigger = [ 'radio', 'checkbox', 'select' ].includes(field.type) ? 'change' : 'blur';
+        rules[field.name].push({ type, required, message, trigger });
 
-        // http://element.eleme.io/#/en-US/component/form#validation
-        rules[field.name] = { type, required, message, trigger };
+        if(field.minlength !== undefined || field.maxlength !== undefined) {
+          const max = field.maxlength || 255;
+          const min = field.minlength || 0;
+          const msg = `Length must between ${ min } and ${ max }`;
+          rules[field.name].push({ min, max, message: msg, trigger });
+        }
       });
     }
 
@@ -51,9 +71,11 @@
   JsonEditor.setComponent('textarea', 'el-input');
   JsonEditor.setComponent('checkbox', 'el-checkbox');
   JsonEditor.setComponent('checkboxgroup', 'el-checkbox-group');
-  JsonEditor.setComponent('switch', 'el-switch');
   JsonEditor.setComponent('radio', 'el-radio');
   JsonEditor.setComponent('select', 'el-select');
+  JsonEditor.setComponent('switch', 'el-switch');
+  JsonEditor.setComponent('color', 'el-color-picker');
+  JsonEditor.setComponent('rate', 'el-rate');
 
   // You can also use the component object
   JsonEditor.setComponent('option', Option);
@@ -83,6 +105,11 @@
         },
       },
     }),
+    computed: {
+      jsonString() {
+        return JSON.stringify(this.model, null, 2).trim();
+      },
+    },
     methods: {
       submit(_e) {
         // this.$refs.JsonEditor.form() returns the ElementUI's form instance
@@ -109,7 +136,7 @@
 <style>
   .form {
     text-align: left;
-    width: 600px;
+    width: 90%;
     margin: auto;
   }
 
@@ -141,5 +168,9 @@
 
   .el-form .sub-2 {
     margin-left: 20%;
+  }
+
+  .json {
+    text-align: left;
   }
 </style>

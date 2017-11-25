@@ -12,8 +12,8 @@ function resolve (dir) {
 module.exports = {
   entry: resolve('src/JsonEditor.vue'),
   output: {
-    path: path.resolve(__dirname, '../dist'),
-    publicPath: '/dist/',
+    path: path.resolve(__dirname, '../lib'),
+    publicPath: '/lib/',
     filename: 'json-editor.min.js',
     library: 'json-editor',
     libraryTarget: 'umd',

@@ -112,7 +112,7 @@
       "title": "Rate",
       "default": 2,
       "attrs": {
-        "compoment": "el-rate",
+        "type": "rate",
         "allow-half": true
       }
     },
@@ -121,7 +121,7 @@
       "title": "Color",
       "default": "#409EFF",
       "attrs": {
-        "compoment": "el-color-picker"
+        "type": "color"
       }
     },
     "agree": {
@@ -130,7 +130,7 @@
       "description": "You agree to receive occasional updates and special offers for vue-json-schema updates.",
       "default": false,
       "attrs": {
-        "compoment": "el-switch"
+        "type": "switch"
       }
     }
   },

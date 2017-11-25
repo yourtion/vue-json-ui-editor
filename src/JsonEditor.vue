@@ -176,14 +176,9 @@
               });
               break;
             }
-            let inputElement;
-            if(field.compoment) {
-              inputElement = createElement(field.compoment, input);
-            } else {
-              inputElement = hasMultitpleElements
+            const inputElement = hasMultitpleElements
               ? createElement(element.component, input, children)
               : createElement(element.component, input, children);
-            }
             
             const formControlsNodes = [];
             if (field.label && !option.disableWrappingLabel) {
