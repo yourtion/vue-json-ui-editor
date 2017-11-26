@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 80,
+      "attrs": {
+        "placeholder": "Your First and Second Name"
+      }
+    },
+    "email": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 120,
+      "attrs": {
+        "placeholder": "Enter your email",
+        "autocomplete": "off"
+      } 
+    },
+    "password": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 120,
+      "attrs": {
+        "type": "password",
+        "placeholder": "Enter your password",
+        "autocomplete": "off"
+      }
+    },
+    "termsAccepted": {
+      "type": "boolean",
+      "title": "I accept the terms of use"
+    },
+    "ip": { "type": "string", "visible": false },
+    "date": { "type": "string", "format": "date-time", "default": "now", "visible": false }
+  },
+  "additionalProperties": false,
+  "required": ["name", "email", "password", "termsAccepted"]
+}
