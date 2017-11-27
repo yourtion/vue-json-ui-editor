@@ -143,6 +143,11 @@ export const parseArray = (vm, schema, schemaName) => {
         field.value = field.value || [];
         field.items = parseItems(schema[keyword]);
         break;
+
+      default:
+        field.type = schema.type;
+        field.value = field.value || [];
+        field.items = parseItems(schema[keyword]);
       }
     }
   }
