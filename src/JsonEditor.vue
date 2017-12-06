@@ -111,9 +111,9 @@
             if (!field.value) {
               field.value = fieldValue;
             }
-            const customComponent = field.compoment ? { compoment: field.compoment, option: { native: true }} : undefined;
+            const customComponent = field.component ? { component: field.component, option: { }} : undefined;
             // eslint-disable-next-line
-            const element = field.compoment ? customComponent : field.hasOwnProperty('items') && field.type !== 'select'
+            const element = field.component ? customComponent : field.hasOwnProperty('items') && field.type !== 'select'
               ? components[`${ field.type }group`] || defaultGroup
               : components[field.type] || defaultInput;
             const fieldOptions = this.elementOptions(element, field, field);
@@ -153,9 +153,9 @@
               if (field.hasOwnProperty('items')) {
                 field.items.forEach((item) => {
                   const itemOptions = this.elementOptions(
-                      components[field.type], item, item, item);
+                    components[field.type], item, item, item);
                   children.push(createElement(
-                      components[field.type].component, itemOptions, item.label));
+                    components[field.type].component, itemOptions, item.label));
                 });
               }
               break;
@@ -242,16 +242,16 @@
       
       const labelOptions = this.elementOptions(components.label);
       const button = this.$slots.hasOwnProperty('default')
-          ? { component: this.$slots.default, option }
-          : components.button;
+        ? { component: this.$slots.default, option }
+        : components.button;
       if (button.component instanceof Array) {
         allFormNodes.push(createElement(
-            components.label.component, labelOptions, button.component));
+          components.label.component, labelOptions, button.component));
       } else {
         const buttonOptions = this.elementOptions(button);
         const buttonElement = createElement(button.component, buttonOptions, button.option.label);
         allFormNodes.push(createElement(
-            components.label.component, labelOptions, [ buttonElement ]));
+          components.label.component, labelOptions, [ buttonElement ]));
       }
       const formOptions = this.elementOptions(components.form, {
         autocomplete: this.autocomplete,

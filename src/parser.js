@@ -9,6 +9,7 @@ const setCommonFields = (schema, field, schemaName) => {
     ? schema.default
     : field.hasOwnProperty('value') ? field.value : '';
 
+  field.component = schema.component;
   field.schemaType = schema.type;
   field.label = schema.title || '';
   field.description = schema.description || '';
