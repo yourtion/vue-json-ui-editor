@@ -97,7 +97,7 @@
         } else {
           node = formNode.root;
         }
-       
+
         if (Object.keys(fields).length) {
           Object.keys(fields).forEach((key) => {
             const formNodes = [];
@@ -118,8 +118,7 @@
               : components[field.type] || defaultInput;
             const fieldOptions = this.elementOptions(element, field, field);
             const children = [];
-            const hasMultitpleElements = false;
-            
+
             const input = {
               ref: fieldName,
               domProps: {
@@ -176,10 +175,8 @@
               });
               break;
             }
-            const inputElement = hasMultitpleElements
-              ? createElement(element.component, input, children)
-              : createElement(element.component, input, children);
-            
+            const inputElement = createElement(element.component, input, children);
+
             const formControlsNodes = [];
             if (field.label && !option.disableWrappingLabel) {
               const labelOptions = this.elementOptions(components.label, field, field);
@@ -239,7 +236,7 @@
         });
       }
       createNode.call(this, this.fields);
-      
+
       const labelOptions = this.elementOptions(components.label);
       const button = this.$slots.hasOwnProperty('default')
         ? { component: this.$slots.default, option }
