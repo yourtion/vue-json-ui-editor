@@ -1,6 +1,6 @@
 <script>
   import { loadFields } from './parser';
-  import { initChild, getChild, setVal } from './utils';
+  import { initChild, getChild, setVal, deepClone } from './utils';
   const option = { native: true };
   const components = {
     title: { component: 'h1', option },
@@ -70,9 +70,9 @@
       };
     },
     created() {
-      loadFields(this, JSON.parse(JSON.stringify(this.schema)));
-      this.default = { ...this.value };
-      this.data = { ...this.value };
+      loadFields(this, deepClone(this.schema));
+      this.default = deepClone(this.value);
+      this.data = deepClone(this.value);
     },
     render(createElement) {
       const nodes = [];
@@ -100,7 +100,7 @@
       function createForm(fields, sub) {
         let node;
         if(sub) {
-          node = setVal(formNode, sub, []);
+          node = setVal(formNode, sub.pop(), {});
         } else {
           node = formNode.root;
         }
@@ -114,7 +114,8 @@
               return createForm.call(this, field, sub ? [ ...sub, key ] : [ key ]);
             }
             const fieldName = field.name;
-            const fieldValue = getChild(this.value, field.name.split('.'));
+
+            const fieldValue = getChild(this.data, fieldName.split('.'));
             if (!field.value) {
               field.value = fieldValue;
             }
@@ -134,7 +135,7 @@
               on: {
                 input: (event) => {
                   const value = event && event.target ? event.target.value : event;
-                  const ns = field.name.split('.');
+                  const ns = fieldName.split('.');
                   const n = ns.pop();
                   const ret = (ns.length > 0 ? initChild(this.data, ns) : this.data);
                   this.$set(ret, n, value);
@@ -216,33 +217,33 @@
             } else {
               formControlsNodes.forEach((node) => formNodes.push(node));
             }
-            if(sub) {
-              node.push(formNodes[0]);
-            } else {
-              node[key] = formNodes[0];
-            }
+            node[key] = formNodes[0];
           });
         }
       }
       createForm.call(this, this.fields);
 
       function createNode(fields, sub) {
-        if(sub) {
-          allFormNodes.push(createElement('div', {
-            class: 'sub-' + sub.length,
-          }, formNode[sub[sub.length - 1]]));
-        }
+        const nodes = [];
+        const subName = sub && sub.pop();
         Object.keys(fields).forEach((key) => {
           if(key === '$sub') return;
           const field = fields[key];
           if(field.$sub) {
-            createNode.call(this, field, sub ? [ ...sub, key ] : [ key ]);
-          } else if(formNode.root[key]) {
-            allFormNodes.push(formNode.root[key]);
+            const node = createNode.call(this, field, sub ? [ ...sub, key ] : [ key ]);
+            nodes.push(createElement('div', {
+              class: 'sub',
+            }, node));
+          } else if(subName) {
+            nodes.push(getChild(formNode, subName.split('.'))[key]);
+          } else {
+            nodes.push(formNode.root[key]);
           }
         });
+        return nodes;
       }
-      createNode.call(this, this.fields);
+      const formNodes = createNode.call(this, this.fields);
+      allFormNodes.push(formNodes);
 
       const labelOptions = this.elementOptions(components.label);
       const button = this.$slots.hasOwnProperty('default')
@@ -342,8 +343,8 @@
       /**
        * Reset the value of all elements of the parent form.
        */
-      reset() {
-        for (const key in this.default) {
+      reset(e) {
+        for (const key in this.data) {
           const ns = key.split('.');
           const n = ns.pop();
           const ret = (ns.length > 0 ? initChild(this.data, ns) : this.data);

@@ -4,7 +4,7 @@
     <el-card class="form">
       <json-editor ref="JsonEditor" :schema="schema" v-model="model">
         <el-button type="primary" @click="submit">Subscribe</el-button>
-        <el-button type="reset">Reset</el-button>
+        <el-button type="reset" @click="reset">Reset</el-button>
       </json-editor>
     </el-card>
   </el-col>
@@ -112,13 +112,11 @@
     },
     methods: {
       submit(_e) {
-        // this.$refs.JsonEditor.form() returns the ElementUI's form instance
-
         this.$refs.JsonEditor.form().validate((valid) => {
           if (valid) {
             // this.model contains the valid data according your JSON Schema.
             // You can submit your model to the server here
-            
+
             // eslint-disable-next-line no-console
             console.log('model', JSON.stringify(this.model));
             this.$refs.JsonEditor.clearErrorMessage();
@@ -127,6 +125,9 @@
             return false;
           }
         });
+      },
+      reset() {
+        this.$refs.JsonEditor.reset();
       },
     },
     components: { JsonEditor },
@@ -162,12 +163,8 @@
     margin-bottom: 15px
   }
 
-  .el-form .sub-1 {
+  .el-form .sub {
     margin-left: 10%;
-  }
-
-  .el-form .sub-2 {
-    margin-left: 20%;
   }
 
   .json {

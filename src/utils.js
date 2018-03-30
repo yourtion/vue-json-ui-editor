@@ -1,3 +1,7 @@
+export function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
 export function getExtendibleLeaf(obj, n, initIt) {
   const v = obj[n];
   if (v && typeof v === 'object' && !Array.isArray(v)) {
