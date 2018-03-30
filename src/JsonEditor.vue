@@ -115,7 +115,7 @@
             }
             const fieldName = field.name;
 
-            const fieldValue = getChild(this.data, fieldName.split('.'));
+            const fieldValue = getChild(this.value, fieldName.split('.'));
             if (!field.value) {
               field.value = fieldValue;
             }
@@ -343,7 +343,7 @@
       /**
        * Reset the value of all elements of the parent form.
        */
-      reset(e) {
+      reset() {
         for (const key in this.data) {
           const ns = key.split('.');
           const n = ns.pop();
