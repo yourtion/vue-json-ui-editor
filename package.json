@@ -1,6 +1,6 @@
 {
   "name": "vue-json-ui-editor",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Edit JSON in UI form with JSON Schema and Vue.js",
   "author": "YourtionGuo <yourtion@gmail.com>",
   "scripts": {
@@ -9,17 +9,31 @@
     "start": "npm run dev",
     "lint": "eslint --ext .js,.vue src test example --fix",
     "dist": "npm test && webpack --config build/webpack.dist.conf.js && export TEST_LIB=true && jest",
-    "prepublish": "npm run dist",
+    "prepublishOnly": "npm run dist",
+    "docs": "vuedoc.md src/JsonEditor.vue",
     "build": "node build/build.js"
   },
   "main": "dist/json-editor.js",
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourtion/vue-json-ui-editor.git"
+  },
+  "keywords": [
+    "json", "schema", "json-schema", "vue-editor", "vue", "vue-json-schema", "vue-json-editor", "json-ui-schema", "json-editor"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourtion/vue-json-ui-editor/issues"
+  },
+  "homepage": "https://github.com/yourtion/vue-json-ui-editor#readme",
   "peerDependencies": {
     "vue": "^2.3.0"
   },
   "devDependencies": {
+    "@vuedoc/md": "^1.0.1",
     "autoprefixer": "^7.1.2",
     "babel-core": "^6.22.1",
     "babel-eslint": "^7.1.1",

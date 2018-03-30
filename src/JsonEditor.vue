@@ -28,6 +28,13 @@
   };
   const defaultInput = { component: 'input', option };
   const defaultGroup = { component: 'div', option };
+
+  /**
+   * Edit JSON in UI form with JSON Schema and Vue.js `<json-editor>` component.
+   *
+   * @author Yourtion
+   * @license MIT
+   */
   export default {
     name: 'JsonEditor',
     props: {
@@ -44,11 +51,11 @@
       /**
        * This property indicates whether the value of the control can be automatically completed by the browser. Possible values are: `off` and `on`.
        */
-      autocomplete: { type: String },
+      autoComplete: { type: String },
       /**
        * This Boolean attribute indicates that the form is not to be validated when submitted.
        */
-      novalidate: { type: Boolean },
+      noValidate: { type: Boolean },
       /**
        * Define the inputs wrapping class. Leave `undefined` to disable input wrapping.
        */
