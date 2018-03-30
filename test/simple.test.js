@@ -18,14 +18,14 @@ const model2 = {
 };
 
 describe('Component', () => {
-  test('Mount', () => {
+  it('Mount', () => {
     const wrapper = shallow(JsonEditor, {
       propsData: { schema },
     });
     expect(wrapper.isVueInstance()).toBeTruthy();
   });
 
-  test('Snapshot', done => {
+  it('Snapshot', done => {
     const wrapper = shallow(JsonEditor, {
       propsData: { schema },
     });
@@ -37,7 +37,7 @@ describe('Component', () => {
     });
   });
 
-  test('Mount with data and set data', () => {
+  describe('Mount with data and set data', () => {
     const wrapper = shallow(JsonEditor, {
       propsData: { schema, value: model },
     });
@@ -45,13 +45,17 @@ describe('Component', () => {
     expect(wrapper.isVueInstance()).toBeTruthy();
     const form = component.$el.getElementsByTagName('form')[0];
     const { name, lists, email } = form.elements;
-    // get mounted data
-    expect(name.getAttribute('value')).toBe(model.name);
-    expect(lists.getAttribute('value')).toBe(model.lists[0]);
-    // update value by setData
-    wrapper.setData({ value: model2 });
-    expect(email.getAttribute('value')).toBe(model2.email);
-    expect(name.getAttribute('value')).toBe(model2.name);
+
+    it('get mounted data', () => {
+      expect(name.getAttribute('value')).toBe(model.name);
+      expect(lists.getAttribute('value')).toBe(model.lists[0]);
+    });
+
+    it('update value by setData', () => {
+      wrapper.setData({ value: model2 });
+      expect(email.getAttribute('value')).toBe(model2.email);
+      expect(name.getAttribute('value')).toBe(model2.name);
+    });
   });
 
 });

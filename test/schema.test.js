@@ -22,50 +22,54 @@ describe('schema', () => {
 
   const attr = (input, name) => input.getAttribute(name);
 
-  for (const fieldName in schema.properties) {
-    const field = schema.properties[fieldName];
+  describe('input', () => {
+    for (const fieldName in schema.properties) {
+      const field = schema.properties[fieldName];
 
-    if (field.visible === false) {
-      it(`invisible input.${ fieldName } should be undefined`, () => {
-        expect(inputs[fieldName]).toBe(undefined);
-      });
-      continue;
-    }
-
-    const input = inputs[fieldName];
-
-    if (!field.attrs) {
-      field.attrs = {};
-    }
-
-    field.attrs.name = fieldName;
-
-    if (field.type === 'boolean') {
-      field.attrs.type = 'checkbox';
-    }
-
-    if (field.minLength) {
-      field.attrs.minlength = field.minLength;
-    }
-
-    if (field.maxLength) {
-      field.attrs.maxlength = field.maxLength;
-    }
-
-    if (field.required) {
-      field.attrs.required = true;
-
-      if (field.attrs.placeholder) {
-        field.attrs.placeholder += ' *';
+      if (field.visible === false) {
+        it(`invisible input.${ fieldName } should be undefined`, () => {
+          expect(inputs[fieldName]).toBe(undefined);
+        });
+        continue;
       }
-    }
 
-    for (const attrName in field.attrs) {
-      it(`input.${ fieldName } should have attribute '${ attrName }'`, () => {
-        expect(attr(input, attrName)).toMatch(new RegExp(`${ field.attrs[attrName] }`));
+      const input = inputs[fieldName];
+
+      if (!field.attrs) {
+        field.attrs = {};
+      }
+
+      field.attrs.name = fieldName;
+
+      if (field.type === 'boolean') {
+        field.attrs.type = 'checkbox';
+      }
+
+      if (field.minLength) {
+        field.attrs.minlength = field.minLength;
+      }
+
+      if (field.maxLength) {
+        field.attrs.maxlength = field.maxLength;
+      }
+
+      if (field.required) {
+        field.attrs.required = true;
+
+        if (field.attrs.placeholder) {
+          field.attrs.placeholder += ' *';
+        }
+      }
+
+      describe(fieldName, () => {
+        for (const attrName in field.attrs) {
+          it(`should have attribute '${ attrName }'`, () => {
+            expect(attr(input, attrName)).toMatch(new RegExp(`${ field.attrs[attrName] }`));
+          });
+        }
       });
     }
-  }
+  });
 
   it('should have a submit button', () => {
     expect(attr(button, 'type')).toBe('submit');
