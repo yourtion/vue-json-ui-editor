@@ -1,6 +1,6 @@
 'use strict';
 
-import { shallow } from 'vue-test-utils';
+import { shallow } from '@vue/test-utils';
 import { createRenderer } from 'vue-server-renderer';
 
 import JsonEditorLib from '../lib/json-editor.min.js';
