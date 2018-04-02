@@ -1,9 +1,8 @@
 'use strict';
 
-import JsonEditorLib from '../lib/json-editor.min.js';
-import JsonEditorSrc from '@/JsonEditor.vue';
-
-const JsonEditor = process.env.TEST_LIB ? JsonEditorLib : JsonEditorSrc;
+const packPath = process.env.TEST_LIB ? '../lib/json-editor.min.js' : '../src/JsonEditor.vue';
+const pack = require(packPath);
+const JsonEditor = pack.default;
 
 describe('JsonEditor', () => {
 

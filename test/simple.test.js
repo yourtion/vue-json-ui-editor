@@ -1,11 +1,11 @@
 'use strict';
 
-import { shallow } from 'vue-test-utils';
+import { shallow } from '@vue/test-utils';
 import { createRenderer } from 'vue-server-renderer';
 
-import JsonEditorLib from '../lib/json-editor.min.js';
-import JsonEditorSrc from '@/JsonEditor.vue';
-const JsonEditor = process.env.TEST_LIB ? JsonEditorLib : JsonEditorSrc;
+const packPath = process.env.TEST_LIB ? '../lib/json-editor.min.js' : '../src/JsonEditor.vue';
+const pack = require(packPath);
+const JsonEditor = pack.default;
 
 const schema = Object.freeze(require('./data/simple.json'));
 const model = {
