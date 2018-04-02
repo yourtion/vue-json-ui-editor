@@ -25,6 +25,7 @@
       }
     },
     "sub": {
+      "title": "Sub Title",
       "type": "object",
       "properties": {
         "sName": {
@@ -49,6 +50,7 @@
         },
         "sub2": {
           "type": "object",
+          "title": "Sub2 Title",
           "properties": {
             "sName2": {
               "type": "string",

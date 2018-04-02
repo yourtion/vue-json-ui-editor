@@ -108,7 +108,7 @@
         if (Object.keys(fields).length) {
           Object.keys(fields).forEach((key) => {
             const formNodes = [];
-            if(key === '$sub') return;
+            if(key.indexOf('$') === 0) return;
             const field = fields[key];
             if(field.$sub) {
               return createForm.call(this, field, sub ? [ ...sub, key ] : [ key ]);
@@ -226,8 +226,13 @@
       function createNode(fields, sub) {
         const nodes = [];
         const subName = sub && sub.pop();
+        if(fields.$title) {
+          nodes.push(createElement('div', {
+            class: 'sub-title',
+          }, fields.$title));
+        }
         Object.keys(fields).forEach((key) => {
-          if(key === '$sub') return;
+          if(key.indexOf('$') === 0) return;
           const field = fields[key];
           if(field.$sub) {
             const node = createNode.call(this, field, sub ? [ ...sub, key ] : [ key ]);

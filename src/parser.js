@@ -39,7 +39,7 @@ export const parseBoolean = (vm, schema, schemaName) => {
   }
 
   field.checked = schema.checked || false;
-  
+
   if (schema.name) {
     field.name = schemaName;
 
@@ -181,7 +181,7 @@ export const loadFields = (vm, schema, fields = vm.fields, sub) => {
         }
       }
       if(schema.name && !fields[schemaName]) {
-        fields[schemaName] = { $sub: true };
+        fields[schemaName] = { $sub: true, $title: schema.title };
       }
       loadFields(vm, schema.properties[key], schema.name ? fields[schemaName] : undefined, sub ? [ ...sub, key ] : [ key ]);
     }

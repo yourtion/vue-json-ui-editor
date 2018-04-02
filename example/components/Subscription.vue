@@ -33,6 +33,7 @@
 
     function parseField(fields) {
       Object.keys(fields).forEach((key) => {
+        if(key.indexOf('$') === 0 && key !== '$sub') return;
         const field = fields[key];
         if(field.$sub) {
           return parseField(field);
