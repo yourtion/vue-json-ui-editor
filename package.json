@@ -1,6 +1,6 @@
 {
   "name": "vue-json-ui-editor",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Edit JSON in UI form with JSON Schema and Vue.js",
   "author": "YourtionGuo <yourtion@gmail.com>",
   "scripts": {
