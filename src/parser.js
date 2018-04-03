@@ -163,9 +163,8 @@ export const parseArray = (vm, schema, schemaName) => {
 };
 
 export const loadFields = (vm, schema, fields = vm.fields, sub) => {
-  if (!schema || schema.visible === false) {
-    return;
-  }
+  if (!schema || schema.visible === false) return;
+
   const schemaName = sub ? sub.join('.') : schema.name;
 
   switch (schema.type) {
@@ -181,7 +180,12 @@ export const loadFields = (vm, schema, fields = vm.fields, sub) => {
         }
       }
       if(schema.name && !fields[schemaName]) {
-        fields[schemaName] = { $sub: true, $title: schema.title };
+        fields[schemaName] = {
+          $sub: true,
+          $title: schema.title,
+          $type: schema.type,
+          $description: schema.description,
+        };
       }
       loadFields(vm, schema.properties[key], schema.name ? fields[schemaName] : undefined, sub ? [ ...sub, key ] : [ key ]);
     }
