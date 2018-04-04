@@ -1,0 +1,80 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Component Snapshot 1`] = `
+<div>
+    <h1>Newsletter Subscription</h1>
+    <p>Sign up for free newsletters and get more delivered to your inbox</p>
+    <form>
+        <label placeholder="Your Full Name" title="Please enter your full name" type="text" schemaType="string" label="Full Name" description="" required="required" name="name" minlength="8" maxlength="80"><span data-required-field="true">Full Name</span>
+            <input placeholder="Your Full Name" title="Please enter your full name" type="text" schemaType="string" label="Full Name" description="" required="required" name="name" minlength="8" maxlength="80"
+                value="">
+        </label>
+        <label type="email" placeholder="Your Email" title="Please enter your email" label="Email" description="" required="required" name="email" maxlength="120"><span data-required-field="true">Email</span>
+            <input type="email" placeholder="Your Email" title="Please enter your email" label="Email" description="" required="required" name="email" maxlength="120" value="">
+        </label>
+        <div class="sub">
+            <div class="sub-title">SubTitle</div>
+            <label placeholder="Sub Full Name" title="Please enter your full name" type="text" label="SubName" description="" name="sub.sName" minlength="8" maxlength="80"><span data-required-field="false">SubName</span>
+                <input placeholder="Sub Full Name" title="Please enter your full name" type="text" label="SubName" description="" name="sub.sName" minlength="8" maxlength="80" value="">
+            </label>
+            <label type="url" label="SubUrl" description="" name="sub.sUrl"><span data-required-field="false">SubUrl</span>
+                <input type="url" label="SubUrl" description="" name="sub.sUrl" value="">
+            </label>
+            <div class="sub">
+                <div class="sub-title">Sub2Title</div>
+                <label type="text" pattern="*" label="Sub2Name" description="" required="required" name="sub.sub2.sName2"><span data-required-field="true">Sub2Name</span>
+                    <input type="text" pattern="*" label="Sub2Name" description="" required="required" name="sub.sub2.sName2" value="">
+                </label>
+                <label type="email" label="Sub2Email" description="" name="sub.sub2.sEmail2"><span data-required-field="false">Sub2Email</span>
+                    <input type="email" label="Sub2Email" description="" name="sub.sub2.sEmail2" value="">
+                </label>
+                <label type="number" schemaType="integer" label="Sub2Email" description="" name="sub.sub2.sAge"><span data-required-field="false">Sub2Email</span>
+                    <input type="number" schemaType="integer" label="Sub2Email" description="" name="sub.sub2.sAge" value="">
+                </label>
+            </div>
+        </div>
+        <label placeholder="Select your list subscription" title="Please select your list subscription" schemaType="string" label="List" description="" required="required" name="lists" items="[object Object],[object Object]" type="select"><span data-required-field="true">List</span>
+            <select placeholder="Select your list subscription" title="Please select your list subscription" schemaType="string" label="List" description="" required="required" name="lists" items="[object Object],[object Object]"
+                type="select" value="">
+                <option value="Daily New">Daily New</option>
+                <option value="Promotion">Promotion</option>
+            </select>
+        </label>
+        <label placeholder="Select your list subscription" title="Please select your list subscription" schemaType="array" label="List2" description="" name="lists2" items="[object Object],[object Object]" type="checkbox"><span data-required-field="false">List2</span>
+            <div placeholder="Select your list subscription" title="Please select your list subscription" schemaType="array" label="List2" description="" name="lists2" items="[object Object],[object Object]" type="checkbox"
+                value="">
+                <input value="daily" label="Daily New">
+                <input value="promotion" label="Promotion">
+            </div>
+        </label>
+        <label schemaType="array" label="List3" description="" name="lists3" items="[object Object],[object Object]" type="radio"><span data-required-field="false">List3</span>
+            <div schemaType="array" label="List3" description="" name="lists3" items="[object Object],[object Object]" type="radio" value="">
+                <input value="daily" label="Daily New">
+                <input value="promotion" label="Promotion">
+            </div>
+        </label>
+        <label schemaType="array" label="List4" description="" name="lists4" items="" type="array"><span data-required-field="false">List4</span>
+            <div schemaType="array" label="List4" description="" name="lists4" items="" type="array" value=""></div>
+        </label>
+        <label type="textarea" placeholder="How did you hear about us?" schemaType="string" label="Source" description="Ex. Using the NPM Search Engine" name="source" maxlength="120"><span data-required-field="false">Source</span>
+            <textarea type="textarea" placeholder="How did you hear about us?" schemaType="string" label="Source" description="Ex. Using the NPM Search Engine" name="source" maxlength="120" value=""></textarea>
+            <br>
+            <small>Ex. Using the NPM Search Engine</small>
+        </label>
+        <label type="rate" allow-half="true" schemaType="number" label="Rate" description="" name="rate"><span data-required-field="false">Rate</span>
+            <input type="rate" allow-half="true" schemaType="number" label="Rate" description="" name="rate" value="2">
+        </label>
+        <label type="color" schemaType="string" label="Color" description="" name="color"><span data-required-field="false">Color</span>
+            <input type="color" schemaType="string" label="Color" description="" name="color" value="#409EFF">
+        </label>
+        <label type="switch" schemaType="boolean" label="Agree" description="You agree to receive occasional updates and special offers for vue-json-schema updates." name="agree"><span data-required-field="false">Agree</span>
+            <input type="switch" schemaType="boolean" label="Agree" description="You agree to receive occasional updates and special offers for vue-json-schema updates." name="agree">
+            <br>
+            <small>You agree to receive occasional updates and special offers for vue-json-schema updates.</small>
+        </label>
+        <label>
+            <button type="submit" label="Submit">Submit</button>
+        </label>
+    </form>
+</div>
+`;

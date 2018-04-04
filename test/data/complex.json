@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Newsletter Subscription",
+  "description": "Sign up for free newsletters and get more delivered to your inbox",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 80,
+      "title": "Full Name",
+      "attrs": {
+        "placeholder": "Your Full Name",
+        "title": "Please enter your full name"
+      }
+    },
+    "email": {
+      "maxLength": 120,
+      "title": "Email",
+      "format": "email",
+      "attrs": {
+        "type": "email",
+        "placeholder": "Your Email",
+        "title": "Please enter your email"
+      }
+    },
+    "sub": {
+      "title": "SubTitle",
+      "description": "SubDescription",
+      "type": "object",
+      "properties": {
+        "sName": {
+          "minLength": 8,
+          "maxLength": 80,
+          "title": "SubName",
+          "attrs": {
+            "placeholder": "Sub Full Name",
+            "title": "Please enter your full name"
+          }
+        },
+        "sUrl": {
+          "title": "SubUrl",
+          "format": "uri"
+        },
+        "sub2": {
+          "type": "object",
+          "title": "Sub2Title",
+          "description": "Sub2Description",
+          "properties": {
+            "sName2": {
+              "format": "regex",
+              "title": "Sub2Name",
+              "pattern": "*"
+            },
+            "sEmail2": {
+              "format": "email",
+              "title": "Sub2Email"
+            },
+            "sAge": {
+              "type": "integer",
+              "title": "Sub2Email"
+            }
+          },
+          "required": [ "sName2" ]
+        }
+      },
+      "required": ["sEmail"]
+    },
+    "lists": {
+      "type": "string",
+      "title": "List",
+      "enum": ["Daily New", "Promotion"],
+      "attrs": {
+        "placeholder": "Select your list subscription",
+        "title": "Please select your list subscription"
+      }
+    },
+    "lists2": {
+      "type": "array",
+      "title": "List2",
+      "anyOf": [
+        { "value": "daily", "label": "Daily New" },
+        { "value": "promotion", "label": "Promotion" }
+      ],
+      "attrs": {
+        "placeholder": "Select your list subscription",
+        "title": "Please select your list subscription"
+      }
+    },
+    "lists3": {
+      "type": "array",
+      "title": "List3",
+      "oneOf": [
+        { "value": "daily", "label": "Daily New" },
+        { "value": "promotion", "label": "Promotion" }
+      ]
+    },
+    "lists4": {
+      "type": "array",
+      "title": "List4"
+    },
+    "source": {
+      "type": "string",
+      "maxLength": 120,
+      "title": "Source",
+      "description": "Ex. Using the NPM Search Engine",
+      "attrs": {
+        "type": "textarea",
+        "placeholder": "How did you hear about us?"
+      }
+    },
+    "rate": {
+      "type": "number",
+      "title": "Rate",
+      "default": 2,
+      "attrs": {
+        "type": "rate",
+        "allow-half": true
+      }
+    },
+    "color": {
+      "type": "string",
+      "title": "Color",
+      "default": "#409EFF",
+      "attrs": {
+        "type": "color"
+      }
+    },
+    "agree": {
+      "type": "boolean",
+      "title": "Agree",
+      "description": "You agree to receive occasional updates and special offers for vue-json-schema updates.",
+      "default": false,
+      "attrs": {
+        "type": "switch"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": ["name", "email", "lists"]
+}

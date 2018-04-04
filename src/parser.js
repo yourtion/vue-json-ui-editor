@@ -52,17 +52,6 @@ export const parseBoolean = (vm, schema, schemaName) => {
 export const parseString = (vm, schema, schemaName) => {
   const field = schema.attrs || {};
 
-  if (!field.type) {
-    switch (schema.type) {
-    case 'number':
-    case 'integer':
-      field.type = 'number';
-      break;
-    default:
-      field.type = 'text';
-    }
-  }
-
   if (schema.format) {
     switch (schema.format) {
     case 'email':
@@ -80,8 +69,19 @@ export const parseString = (vm, schema, schemaName) => {
         field.type = 'text';
       }
 
-      field.pattern = schema.format;
+      field.pattern = schema.pattern;
       break;
+    }
+  }
+
+  if (!field.type) {
+    switch (schema.type) {
+    case 'number':
+    case 'integer':
+      field.type = 'number';
+      break;
+    default:
+      field.type = 'text';
     }
   }
 
@@ -145,12 +145,13 @@ export const parseArray = (vm, schema, schemaName) => {
         field.items = parseItems(schema[keyword]);
         break;
 
-      default:
-        field.type = schema.type;
-        field.value = field.value || [];
-        field.items = parseItems(schema[keyword]);
       }
     }
+  }
+  if(!field.type) {
+    field.type = schema.type;
+    field.value = field.value || [];
+    field.items = [];
   }
 
   if (schema.name) {
@@ -183,7 +184,6 @@ export const loadFields = (vm, schema, fields = vm.fields, sub) => {
         fields[schemaName] = {
           $sub: true,
           $title: schema.title,
-          $type: schema.type,
           $description: schema.description,
         };
       }
@@ -214,5 +214,8 @@ export const loadFields = (vm, schema, fields = vm.fields, sub) => {
     }
     fields[schemaName] = parseString(vm, schema, schemaName);
     break;
+  default:
+    fields[schemaName] = parseString(vm, schema, schemaName);
   }
+
 };
