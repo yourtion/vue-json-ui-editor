@@ -15,9 +15,9 @@
       }
     },
     "email": {
-      "type": "string",
       "maxLength": 120,
       "title": "Email",
+      "format": "email",
       "attrs": {
         "type": "email",
         "placeholder": "Your Email",
@@ -25,11 +25,11 @@
       }
     },
     "sub": {
-      "title": "Sub Title",
+      "title": "SubTitle",
+      "description": "SubDescription",
       "type": "object",
       "properties": {
         "sName": {
-          "type": "string",
           "minLength": 8,
           "maxLength": 80,
           "title": "SubName",
@@ -38,39 +38,27 @@
             "title": "Please enter your full name"
           }
         },
-        "sEmail": {
-          "type": "string",
-          "maxLength": 120,
-          "title": "SubEmail",
-          "attrs": {
-            "type": "email",
-            "placeholder": "Sub Email",
-            "title": "Please enter your email"
-          }
+        "sUrl": {
+          "title": "SubUrl",
+          "format": "uri"
         },
         "sub2": {
           "type": "object",
-          "title": "Sub2 Title",
+          "title": "Sub2Title",
+          "description": "Sub2Description",
           "properties": {
             "sName2": {
-              "type": "string",
-              "minLength": 8,
-              "maxLength": 80,
+              "format": "regex",
               "title": "Sub2Name",
-              "attrs": {
-                "placeholder": "Sub2 Full Name",
-                "title": "Please enter your full name"
-              }
+              "pattern": "*"
             },
             "sEmail2": {
-              "type": "string",
-              "maxLength": 120,
-              "title": "Sub2Email",
-              "attrs": {
-                "type": "email",
-                "placeholder": "Sub2 Email",
-                "title": "Please enter your email"
-              }
+              "format": "email",
+              "title": "Sub2Email"
+            },
+            "sAge": {
+              "type": "integer",
+              "title": "Sub2Email"
             }
           },
           "required": [ "sName2" ]
@@ -98,6 +86,18 @@
         "placeholder": "Select your list subscription",
         "title": "Please select your list subscription"
       }
+    },
+    "lists3": {
+      "type": "array",
+      "title": "List3",
+      "oneOf": [
+        { "value": "daily", "label": "Daily New" },
+        { "value": "promotion", "label": "Promotion" }
+      ]
+    },
+    "lists4": {
+      "type": "array",
+      "title": "List4"
     },
     "source": {
       "type": "string",

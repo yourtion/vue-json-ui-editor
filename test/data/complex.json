@@ -58,7 +58,7 @@
             },
             "sAge": {
               "type": "integer",
-              "title": "Sub2Email"
+              "title": "Sub2Age"
             }
           },
           "required": [ "sName2" ]

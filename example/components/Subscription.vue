@@ -68,6 +68,8 @@
   }));
 
   JsonEditor.setComponent('email', 'el-input');
+  JsonEditor.setComponent('url', 'el-input');
+  JsonEditor.setComponent('number', 'el-input-number');
   JsonEditor.setComponent('text', 'el-input');
   JsonEditor.setComponent('textarea', 'el-input');
   JsonEditor.setComponent('checkbox', 'el-checkbox');
