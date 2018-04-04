@@ -28,8 +28,8 @@ exports[`Component Snapshot 1`] = `
                 <label type="email" label="Sub2Email" description="" name="sub.sub2.sEmail2"><span data-required-field="false">Sub2Email</span>
                     <input type="email" label="Sub2Email" description="" name="sub.sub2.sEmail2" value="">
                 </label>
-                <label type="number" schemaType="integer" label="Sub2Email" description="" name="sub.sub2.sAge"><span data-required-field="false">Sub2Email</span>
-                    <input type="number" schemaType="integer" label="Sub2Email" description="" name="sub.sub2.sAge" value="">
+                <label type="number" schemaType="integer" label="Sub2Age" description="" name="sub.sub2.sAge"><span data-required-field="false">Sub2Age</span>
+                    <input type="number" schemaType="integer" label="Sub2Age" description="" name="sub.sub2.sAge" value="">
                 </label>
             </div>
         </div>

@@ -8,14 +8,6 @@ const pack = require(packPath);
 const JsonEditor = pack.default;
 
 const schema = Object.freeze(require('./data/complex.json'));
-const model = {
-  name: 'Yourtion',
-  lists: [ 'Promotion' ],
-};
-const model2 = {
-  name: 'YourtionGuo',
-  email: 'yourtion@gmail.com',
-};
 
 describe('Component', () => {
   it('Mount', () => {
