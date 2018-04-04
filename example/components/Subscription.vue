@@ -102,9 +102,9 @@
     data: () => ({
       schema: require('@/schema/newsletter'),
       model: {
-        name: 'ad',
+        name: 'Yourtion',
         sub: {
-          sName: 'as',
+          sEmail: 'yourtion@gmail.com',
         },
       },
     }),
