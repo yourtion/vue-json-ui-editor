@@ -2,6 +2,62 @@
 
 Edit JSON in UI form with JSON Schema and Vue.js `<json-editor>` component.
 
+![ScreenShot](screenshot.jpg)
+
+## Install
+
+```bash
+npm install vue-json-ui-editor --save
+```
+
+## Use
+
+```Vue
+<template>
+<json-editor ref="JsonEditor" :schema="schema" v-model="model">
+    <button @click="submit">submit</button>
+    <button @click="reset">Reset</button>
+</json-editor>
+</template>
+
+<script>
+const SCHEMA = {
+  type: 'object',
+  title: 'vue-json-editor demo',
+  properties: {
+    name: {
+      type: 'string',
+    },
+    email: {
+      type: 'string',
+    },
+  },
+};
+// import vue-json-ui-editor
+import JsonEditor from '../../src/JsonEditor.vue';
+export default {
+  components: { JsonEditor },
+  data: () => ({
+    // init json schma file
+    schema: SCHEMA,
+    // data
+    model: {
+      name: 'Yourtion',
+    },
+  }),
+
+  methods: {
+    submit(_e) {
+      alert(JSON.stringify(this.model));
+    },
+    reset() {
+      this.$refs.JsonEditor.reset();
+    },
+  },
+};
+</script>
+```
+
 ## props
 
 - `schema` ***Object*** (*required*)
