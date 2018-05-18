@@ -1,13 +1,11 @@
 'use strict';
 const { initChild, getChild } = require('./utils');
 
-const ARRAY_KEYWORDS = [ 'anyOf', 'oneOf', 'enum' ];
+const ARRAY_KEYWORDS = ['anyOf', 'oneOf', 'enum'];
 
 const setCommonFields = (schema, field, schemaName) => {
   // eslint-disable-next-line no-nested-ternary
-  field.value = schema.hasOwnProperty('default')
-    ? schema.default
-    : field.hasOwnProperty('value') ? field.value : '';
+  field.value = schema.hasOwnProperty('default') ? schema.default : field.hasOwnProperty('value') ? field.value : '';
 
   field.component = schema.component;
   field.schemaType = schema.type;
@@ -23,11 +21,10 @@ const setFormValue = (vm, field) => {
   const vmValue = getChild(vm.value, ns);
   if (vm.value && !vmValue) {
     const n = ns.pop();
-    const ret = (ns.length > 0 ? initChild(vm.value, ns) : vm.value);
+    const ret = ns.length > 0 ? initChild(vm.value, ns) : vm.value;
     vm.$set(ret, n, field.value);
   }
 };
-
 
 export const parseBoolean = (vm, schema, schemaName) => {
   const field = schema.attrs || {};
@@ -104,8 +101,8 @@ export const parseString = (vm, schema, schemaName) => {
   return field;
 };
 
-export const parseItems = (items) => {
-  return items.map((item) => {
+export const parseItems = items => {
+  return items.map(item => {
     if (typeof item !== 'object') {
       return { value: item, label: item };
     }
@@ -144,11 +141,10 @@ export const parseArray = (vm, schema, schemaName) => {
         field.value = field.value || [];
         field.items = parseItems(schema[keyword]);
         break;
-
       }
     }
   }
-  if(!field.type) {
+  if (!field.type) {
     field.type = schema.type;
     field.value = field.value || [];
     field.items = [];
@@ -180,14 +176,19 @@ export const loadFields = (vm, schema, fields = vm.fields, sub) => {
           }
         }
       }
-      if(schema.name && !fields[schemaName]) {
+      if (schema.name && !fields[schemaName]) {
         fields[schemaName] = {
           $sub: true,
           $title: schema.title,
           $description: schema.description,
         };
       }
-      loadFields(vm, schema.properties[key], schema.name ? fields[schemaName] : undefined, sub ? [ ...sub, key ] : [ key ]);
+      loadFields(
+        vm,
+        schema.properties[key],
+        schema.name ? fields[schemaName] : undefined,
+        sub ? [...sub, key] : [key]
+      );
     }
     break;
 
@@ -217,5 +218,4 @@ export const loadFields = (vm, schema, fields = vm.fields, sub) => {
   default:
     fields[schemaName] = parseString(vm, schema, schemaName);
   }
-
 };

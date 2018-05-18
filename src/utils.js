@@ -42,7 +42,7 @@ export function initChild(data, ns) {
     const n = ns[i];
     const ret = getExtendibleLeaf(obj, n, true);
     if (ret === undefined) {
-      throw new TypeError('fail to init because namespace ' + ns.join('.') + ' = ' + obj + '(' + (typeof obj) + ')');
+      throw new TypeError('fail to init because namespace ' + ns.join('.') + ' = ' + obj + '(' + typeof obj + ')');
     }
     parent = obj;
     obj = ret;
@@ -57,7 +57,7 @@ export function setVal(data, n, v) {
   const ns = Array.isArray(n) ? n : n.split('.');
   // eslint-disable-next-line
   n = ns.pop();
-  const ret = (ns.length > 0 ? initChild(data, ns) : data);
+  const ret = ns.length > 0 ? initChild(data, ns) : data;
   ret[n] = v;
   return v;
 }
