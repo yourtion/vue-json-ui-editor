@@ -9,11 +9,21 @@
     </el-card>
   </el-col>
   <el-col :span="12">
-      <el-card class="box-card">
+    <el-card class="box-card">
       <div slot="header" class="clearfix">
         <span>Model</span>
       </div>
       <pre class="json">{{ jsonString }}</pre>
+    </el-card>
+    <br />
+    <el-card class="box-card">
+      <div slot="header" class="clearfix">
+        <span>How to use</span>
+      </div>
+      <div class="json">
+        <p>GitHub: <a href="https://github.com/yourtion/vue-json-ui-editor" target="_blank">vue-json-ui-editor</a></p>
+        <p>NPM: <a href="https://www.npmjs.com/package/vue-json-ui-editor" target="_blank">json-editor</a></p>
+      </div>
     </el-card>
   </el-col>
 </el-row>

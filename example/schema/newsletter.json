@@ -1,27 +1,17 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "title": "Newsletter Subscription",
-  "description": "Sign up for free newsletters and get more delivered to your inbox",
+  "title": "Json-Editor-Demo",
+  "description": "Demo for vue-json-ui-editor using element-ui ",
   "properties": {
     "name": {
       "type": "string",
       "minLength": 8,
       "maxLength": 80,
-      "title": "Full Name",
+      "title": "String",
       "attrs": {
         "placeholder": "Your Full Name",
         "title": "Please enter your full name"
-      }
-    },
-    "email": {
-      "maxLength": 120,
-      "title": "Email",
-      "format": "email",
-      "attrs": {
-        "type": "email",
-        "placeholder": "Your Email",
-        "title": "Please enter your email"
       }
     },
     "sub": {
@@ -52,19 +42,15 @@
               "title": "Sub2Name",
               "pattern": "*"
             },
-            "sEmail2": {
-              "format": "email",
-              "title": "Sub2Email"
-            },
             "sAge": {
               "type": "integer",
-              "title": "Sub2Email"
+              "title": "Sub2Age"
             }
           },
           "required": [ "sName2" ]
         }
       },
-      "required": ["sEmail"]
+      "required": ["sUrl"]
     },
     "lists": {
       "type": "string",
@@ -94,10 +80,6 @@
         { "value": "daily", "label": "Daily New" },
         { "value": "promotion", "label": "Promotion" }
       ]
-    },
-    "lists4": {
-      "type": "array",
-      "title": "List4"
     },
     "source": {
       "type": "string",

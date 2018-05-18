@@ -38,7 +38,7 @@ import JsonEditor from '../../src/JsonEditor.vue';
 export default {
   components: { JsonEditor },
   data: () => ({
-    // init json schma file
+    // init json schma file ( require('@/schema/newsletter') )
     schema: SCHEMA,
     // data
     model: {
@@ -57,6 +57,9 @@ export default {
 };
 </script>
 ```
+
+More info on: [Example-Subscription](example/components/Subscription.vue)
+Schema: [newsletter.json](example/schema/newsletter.json)
 
 ## props
 
