@@ -3,7 +3,7 @@ const { initChild, getChild } = require('./utils');
 
 const ARRAY_KEYWORDS = ['anyOf', 'oneOf', 'enum'];
 
-const setCommonFields = (schema, field, schemaName) => {
+function setCommonFields(schema, field, schemaName) {
   // eslint-disable-next-line no-nested-ternary
   field.value = schema.hasOwnProperty('default') ? schema.default : field.hasOwnProperty('value') ? field.value : '';
 
@@ -14,9 +14,9 @@ const setCommonFields = (schema, field, schemaName) => {
   field.required = schema.required || false;
   field.disabled = schema.disabled || false;
   field.name = schemaName;
-};
+}
 
-const setFormValue = (vm, field) => {
+function setFormValue(vm, field) {
   const ns = field.name.split('.');
   const vmValue = getChild(vm.value, ns);
   if (vm.value && !vmValue) {
@@ -24,9 +24,9 @@ const setFormValue = (vm, field) => {
     const ret = ns.length > 0 ? initChild(vm.value, ns) : vm.value;
     vm.$set(ret, n, field.value);
   }
-};
+}
 
-export const parseBoolean = (vm, schema, schemaName) => {
+export function parseBoolean(vm, schema, schemaName) {
   const field = schema.attrs || {};
 
   setCommonFields(schema, field, schemaName);
@@ -44,9 +44,9 @@ export const parseBoolean = (vm, schema, schemaName) => {
   }
 
   return field;
-};
+}
 
-export const parseString = (vm, schema, schemaName) => {
+export function parseString(vm, schema, schemaName) {
   const field = schema.attrs || {};
 
   if (schema.format) {
@@ -99,9 +99,9 @@ export const parseString = (vm, schema, schemaName) => {
   }
 
   return field;
-};
+}
 
-export const parseItems = items => {
+export function parseItems(items) {
   return items.map(item => {
     if (typeof item !== 'object') {
       return { value: item, label: item };
@@ -109,9 +109,9 @@ export const parseItems = items => {
 
     return item;
   });
-};
+}
 
-export const parseArray = (vm, schema, schemaName) => {
+export function parseArray(vm, schema, schemaName) {
   const field = schema.attrs || {};
 
   setCommonFields(schema, field, schemaName);
@@ -157,9 +157,9 @@ export const parseArray = (vm, schema, schemaName) => {
   }
 
   return field;
-};
+}
 
-export const loadFields = (vm, schema, fields = vm.fields, sub) => {
+export function loadFields(vm, schema, fields = vm.fields, sub) {
   if (!schema || schema.visible === false) return;
 
   const schemaName = sub ? sub.join('.') : schema.name;
@@ -218,4 +218,4 @@ export const loadFields = (vm, schema, fields = vm.fields, sub) => {
   default:
     fields[schemaName] = parseString(vm, schema, schemaName);
   }
-};
+}
