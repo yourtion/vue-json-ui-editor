@@ -1,6 +1,6 @@
 'use strict';
 
-import { shallow } from '@vue/test-utils';
+import { shallowMount } from '@vue/test-utils';
 import { createRenderer } from 'vue-server-renderer';
 
 const packPath = process.env.TEST_LIB ? '../lib/json-editor.min.js' : '../src/JsonEditor.vue';
@@ -11,7 +11,7 @@ const schema = Object.freeze(require('./data/signup.json'));
 
 describe('schema', () => {
   const model = {};
-  const wrapper = shallow(JsonEditor, {
+  const wrapper = shallowMount(JsonEditor, {
     propsData: { schema, model },
   });
   const component = wrapper.vm;
