@@ -1,5 +1,7 @@
 # json-editor
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/yourtion/vue-json-ui-editor.svg)](https://greenkeeper.io/)
+
 Edit JSON in UI form with JSON Schema and Vue.js `<json-editor>` component.
 
 ![ScreenShot](screenshot.jpg)
