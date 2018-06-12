@@ -1,6 +1,6 @@
 {
   "name": "vue-json-ui-editor",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Edit JSON in UI form with JSON Schema and Vue.js",
   "author": "YourtionGuo <yourtion@gmail.com>",
   "scripts": {
@@ -13,9 +13,9 @@
     "docs": "vuedoc.md src/JsonEditor.vue",
     "build": "node build/build.js"
   },
-  "main": "dist/json-editor.js",
+  "main": "lib/json-editor.min.js",
   "files": [
-    "dist"
+    "lib"
   ],
   "repository": {
     "type": "git",
