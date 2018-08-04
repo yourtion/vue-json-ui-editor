@@ -84,6 +84,7 @@ JsonEditor.setComponent('textarea', 'el-input');
 JsonEditor.setComponent('checkbox', 'el-checkbox');
 JsonEditor.setComponent('checkboxgroup', 'el-checkbox-group');
 JsonEditor.setComponent('radio', 'el-radio');
+JsonEditor.setComponent('radiogroup', 'el-radio-group');
 JsonEditor.setComponent('select', 'el-select');
 JsonEditor.setComponent('switch', 'el-switch');
 JsonEditor.setComponent('color', 'el-color-picker');
