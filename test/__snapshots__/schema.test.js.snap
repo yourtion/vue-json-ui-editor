@@ -2,16 +2,6 @@
 
 exports[`schema Snapshot 1`] = `
 <div>
-  <form>
-    <input placeholder="Your First and Second Name" type="text" schemaType="string" label="" description="" required="required" name="name" minlength="8" maxlength="80" value="">
-    <input placeholder="Enter your email" autoComplete="off" type="text" schemaType="string" label="" description="" required="required" name="email" minlength="8" maxlength="120" value="">
-    <input type="password" placeholder="Enter your password" autoComplete="off" schemaType="string" label="" description="" required="required" name="password" minlength="8" maxlength="120" value="">
-    <label schemaType="boolean" label="I accept the terms of use" description="" required="required" name="termsAccepted" type="checkbox"><span data-required-field="true">I accept the terms of use</span>
-      <input schemaType="boolean" label="I accept the terms of use" description="" required="required" name="termsAccepted" type="checkbox" value="">
-    </label>
-    <label>
-      <button type="submit" label="Submit">Submit</button>
-    </label>
-  </form>
+  <form><input placeholder="Your First and Second Name" name="name" minlength="8" maxlength="80" type="text" value="" schemaType="string" label="" description="" required="required"><input placeholder="Enter your email" autoComplete="off" name="email" minlength="8" maxlength="120" type="text" value="" schemaType="string" label="" description="" required="required"><input type="password" placeholder="Enter your password" autoComplete="off" name="password" minlength="8" maxlength="120" value="" schemaType="string" label="" description="" required="required"><label name="termsAccepted" type="checkbox" schemaType="boolean" label="I accept the terms of use" description="" required="required"><span data-required-field="true">I accept the terms of use</span><input name="termsAccepted" type="checkbox" value="" schemaType="boolean" label="I accept the terms of use" description="" required="required"></label><label><button type="submit" label="Submit">Submit</button></label></form>
 </div>
 `;

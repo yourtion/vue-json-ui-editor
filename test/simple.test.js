@@ -1,7 +1,7 @@
 'use strict';
 
 import { shallowMount } from '@vue/test-utils';
-import { createRenderer } from 'vue-server-renderer';
+import { renderToString } from '@vue/server-test-utils';
 
 const packPath = process.env.TEST_LIB ? '../lib/json-editor.min.js' : '../src/JsonEditor.vue';
 const pack = require(packPath);
@@ -25,16 +25,11 @@ describe('Component', () => {
     expect(wrapper.isVueInstance()).toBeTruthy();
   });
 
-  it('Snapshot', done => {
-    const wrapper = shallowMount(JsonEditor, {
+  it('Snapshot', () => {
+    const renderedString = renderToString(JsonEditor, {
       propsData: { schema },
     });
-    const renderer = createRenderer();
-    renderer.renderToString(wrapper.vm, (err, str) => {
-      if (err) throw new Error(err);
-      expect(str).toMatchSnapshot();
-      done();
-    });
+    expect(renderedString).toMatchSnapshot();
   });
 
   describe('Mount with data and set data', () => {

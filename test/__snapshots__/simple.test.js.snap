@@ -4,24 +4,9 @@ exports[`Component Snapshot 1`] = `
 <div>
   <h1>Newsletter Subscription</h1>
   <p>Sign up for free newsletters and get more delivered to your inbox</p>
-  <form>
-    <label placeholder="Your Full Name" title="Please enter your full name" type="text" schemaType="string" label="Full Name" description="" required="required" name="name" minlength="8" maxlength="80"><span data-required-field="true">Full Name</span>
-      <input placeholder="Your Full Name" title="Please enter your full name" type="text" schemaType="string" label="Full Name" description="" required="required" name="name" minlength="8" maxlength="80"
-        value="">
-    </label>
-    <label type="email" placeholder="Your Email" title="Please enter your email" schemaType="string" label="Email" description="" required="required" name="email" maxlength="120"><span data-required-field="true">Email</span>
-      <input type="email" placeholder="Your Email" title="Please enter your email" schemaType="string" label="Email" description="" required="required" name="email" maxlength="120" value="">
-    </label>
-    <label placeholder="Select your list subscription" title="Please select your list subscription" schemaType="string" label="List" description="" required="required" name="lists" items="[object Object],[object Object]" type="select"><span data-required-field="true">List</span>
-      <select placeholder="Select your list subscription" title="Please select your list subscription" schemaType="string" label="List" description="" required="required" name="lists" items="[object Object],[object Object]"
-        type="select" value="">
+  <form><label placeholder="Your Full Name" title="Please enter your full name" type="text" schemaType="string" label="Full Name" description="" required="required" name="name" minlength="8" maxlength="80"><span data-required-field="true">Full Name</span><input placeholder="Your Full Name" title="Please enter your full name" type="text" value="" schemaType="string" label="Full Name" description="" required="required" name="name" minlength="8" maxlength="80"></label><label type="email" placeholder="Your Email" title="Please enter your email" schemaType="string" label="Email" description="" required="required" name="email" maxlength="120"><span data-required-field="true">Email</span><input type="email" placeholder="Your Email" title="Please enter your email" value="" schemaType="string" label="Email" description="" required="required" name="email" maxlength="120"></label><label placeholder="Select your list subscription" title="Please select your list subscription" schemaType="string" label="List" description="" required="required" name="lists" items="[object Object],[object Object]" type="select"><span data-required-field="true">List</span><select placeholder="Select your list subscription" title="Please select your list subscription" value="" schemaType="string" label="List" description="" required="required" name="lists" items="[object Object],[object Object]" type="select">
         <option value="Daily New">Daily New</option>
         <option value="Promotion">Promotion</option>
-      </select>
-    </label>
-    <label>
-      <button type="submit" label="Submit">Submit</button>
-    </label>
-  </form>
+      </select></label><label><button type="submit" label="Submit">Submit</button></label></form>
 </div>
 `;
