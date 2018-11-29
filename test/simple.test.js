@@ -44,19 +44,18 @@ describe('Component', () => {
     const component = wrapper.vm;
     expect(wrapper.isVueInstance()).toBeTruthy();
     const form = component.$el.getElementsByTagName('form')[0];
-    const { name, lists } = form.elements;
+    const { name, lists, email } = form.elements;
 
     it('get mounted data', () => {
       expect(name.getAttribute('value')).toBe(model.name);
       expect(lists.getAttribute('value')).toBe(model.lists[0]);
     });
 
-    // TODO: fix setData bug
-    // it('update value by setData', () => {
-    //   wrapper.setData({ value: model2 });
-    //   expect(email.getAttribute('value')).toBe(model2.email);
-    //   expect(name.getAttribute('value')).toBe(model2.name);
-    // });
+    it('update value by setData', () => {
+      wrapper.setData({ value: model2 });
+      expect(email.getAttribute('value')).toBe(model2.email);
+      expect(name.getAttribute('value')).toBe(model2.name);
+    });
   });
 
 });

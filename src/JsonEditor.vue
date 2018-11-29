@@ -72,7 +72,7 @@ export default {
   created() {
     loadFields(this, deepClone(this.schema));
     this.default = deepClone(this.value);
-    this.data = deepClone(this.value);
+    this.data = this.value;
   },
   render(createElement) {
     const nodes = [];
