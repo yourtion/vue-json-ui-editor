@@ -1,6 +1,26 @@
+[![NPM version][npm-image]][npm-url]
+[![build status][travis-image]][travis-url]
+[![Test coverage][coveralls-image]][coveralls-url]
+[![David deps][david-image]][david-url]
+[![npm download][download-image]][download-url]
+[![npm license][license-image]][download-url]
+
+[npm-image]: https://img.shields.io/npm/v/vue-json-ui-editor.svg?style=flat-square
+[npm-url]: https://npmjs.org/package/vue-json-ui-editor
+[travis-image]: https://img.shields.io/travis/yourtion/vue-json-ui-editor.svg?style=flat-square
+[travis-url]: https://travis-ci.org/yourtion/vue-json-ui-editor
+[coveralls-image]: https://img.shields.io/coveralls/yourtion/vue-json-ui-editor.svg?style=flat-square
+[coveralls-url]: https://coveralls.io/r/yourtion/vue-json-ui-editor?branch=master
+[david-image]: https://img.shields.io/david/yourtion/vue-json-ui-editor.svg?style=flat-square
+[david-url]: https://david-dm.org/yourtion/vue-json-ui-editor
+[download-image]: https://img.shields.io/npm/dm/vue-json-ui-editor.svg?style=flat-square
+[download-url]: https://npmjs.org/package/vue-json-ui-editor
+[license-image]: https://img.shields.io/npm/l/vue-json-ui-editor.svg
+
 # json-editor
 
 [![Greenkeeper badge](https://badges.greenkeeper.io/yourtion/vue-json-ui-editor.svg)](https://greenkeeper.io/)
+[![DeepScan grade](https://deepscan.io/api/teams/2046/projects/2774/branches/19927/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=2046&pid=2774&bid=19927)
 
 Edit JSON in UI form with JSON Schema and Vue.js `<json-editor>` component.
 
