@@ -12,7 +12,7 @@ const schema = Object.freeze(require('./data/signup.json'));
 describe('schema', () => {
   const model = {};
   const wrapper = shallowMount(JsonEditor, {
-    propsData: { schema, model },
+    propsData: { schema, value: model },
   });
   const component = wrapper.vm;
 
