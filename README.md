@@ -56,7 +56,7 @@ const SCHEMA = {
   },
 };
 // import vue-json-ui-editor
-import JsonEditor from '../../src/JsonEditor.vue';
+import JsonEditor from 'vue-json-ui-editor';
 export default {
   components: { JsonEditor },
   data: () => ({
