@@ -41,7 +41,7 @@
     "vue": "*"
   },
   "devDependencies": {
-    "@vue/server-test-utils": "^1.0.0-beta.26",
+    "@vue/server-test-utils": "^1.0.2",
     "@vue/test-utils": "^1.0.0-beta.18",
     "@vuedoc/md": "^1.5.0",
     "autoprefixer": "^8.5.2",
