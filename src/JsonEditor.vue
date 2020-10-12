@@ -149,46 +149,52 @@ export default {
           };
           delete field.value;
           switch (field.type) {
-          case 'textarea':
-            if (element.option.native) {
-              input.domProps.innerHTML = fieldValue;
-            }
-            break;
-          case 'radio':
-          case 'checkbox':
-            if (field.hasOwnProperty('items')) {
-              field.items.forEach(item => {
-                const itemOptions = this.elementOptions(components[field.type], item, item, item);
-                children.push(createElement(components[field.type].component, itemOptions, item.label));
-              });
-            }
-            break;
-          case 'select':
-            if (!field.required) {
-              children.push(createElement(components.option.component));
-            }
-            field.items.forEach(option => {
-              const optionOptions = this.elementOptions(
-                components.option,
-                {
-                  value: option.value,
-                },
-                field
-              );
-              children.push(
-                createElement(
-                  components.option.component,
+            case 'text':
+              if (field.hasOwnProperty('placeholder')) {
+                if (!input.attrs) input.attrs = {}
+                input.attrs.placeholder = field.placeholder
+              }
+              break;
+            case 'textarea':
+              if (element.option.native) {
+                input.domProps.innerHTML = fieldValue;
+              }
+              break;
+            case 'radio':
+            case 'checkbox':
+              if (field.hasOwnProperty('items')) {
+                field.items.forEach(item => {
+                  const itemOptions = this.elementOptions(components[field.type], item, item, item);
+                  children.push(createElement(components[field.type].component, itemOptions, item.label));
+                });
+              }
+              break;
+            case 'select':
+              if (!field.required) {
+                children.push(createElement(components.option.component));
+              }
+              field.items.forEach(option => {
+                const optionOptions = this.elementOptions(
+                  components.option,
                   {
-                    domProps: {
-                      value: option.value,
-                    },
-                    ...optionOptions,
+                    value: option.value,
                   },
-                  option.label
-                )
-              );
-            });
-            break;
+                  field
+                );
+                children.push(
+                  createElement(
+                    components.option.component,
+                    {
+                      domProps: {
+                        value: option.value,
+                      },
+                      ...optionOptions,
+                    },
+                    option.label
+                  )
+                );
+              });
+              break;
           }
           const inputElement = createElement(element.component, input, children);
 
