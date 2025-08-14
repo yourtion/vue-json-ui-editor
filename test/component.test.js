@@ -1,4 +1,4 @@
-'use strict';
+
 
 import JsonEditor from '../src/JsonEditor.vue';
 
