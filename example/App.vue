@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import Subscription from './components/Subscription';
+import Subscription from './components/Subscription.vue';
 
 export default {
   name: 'app',

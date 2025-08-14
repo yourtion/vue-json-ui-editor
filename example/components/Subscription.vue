@@ -107,9 +107,11 @@ JsonEditor.setComponent('error', 'el-alert', ({ vm }) => ({
   title: vm.error,
 }));
 
+import newsletterSchema from '../schema/newsletter.json';
+
 export default {
   data: () => ({
-    schema: require('@/schema/newsletter'),
+    schema: newsletterSchema,
     model: {
       name: 'Yourtion',
       sub: {

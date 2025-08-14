@@ -1,5 +1,5 @@
 'use strict';
-const { initChild, getChild } = require('./utils');
+import { initChild, getChild } from './utils';
 
 const ARRAY_KEYWORDS = ['anyOf', 'oneOf', 'enum'];
 

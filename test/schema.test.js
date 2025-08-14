@@ -1,13 +1,9 @@
 'use strict';
 
 import { shallowMount } from '@vue/test-utils';
-import { renderToString } from '@vue/server-test-utils';
 
-const packPath = process.env.TEST_LIB ? '../lib/json-editor.min.js' : '../src/JsonEditor.vue';
-const pack = require(packPath);
-const JsonEditor = pack.default;
-
-const schema = Object.freeze(require('./data/signup.json'));
+import JsonEditor from '../src/JsonEditor.vue';
+import schema from './data/signup.json';
 
 describe('schema', () => {
   const model = {};
@@ -81,10 +77,10 @@ describe('schema', () => {
   });
 
   test('Snapshot', () => {
-    const renderedString = renderToString(JsonEditor, {
+    const wrapper = shallowMount(JsonEditor, {
       propsData: { schema, value: model },
     });
-    expect(renderedString).toMatchSnapshot();
+    expect(wrapper.html()).toMatchSnapshot();
   });
 
 });
