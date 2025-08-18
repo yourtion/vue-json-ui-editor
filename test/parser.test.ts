@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { parseBoolean, parseString, parseArray, parseItems, loadFields } from '../src/parser';
-import type { JsonSchemaProperty, VueInstance, FormField } from '../src/types';
+import type { JsonSchemaProperty, VueInstance } from '../src/types';
 
 // Mock Vue instance for testing
 const createMockVueInstance = (value: Record<string, unknown> = {}): VueInstance => {
@@ -10,7 +10,7 @@ const createMockVueInstance = (value: Record<string, unknown> = {}): VueInstance
     $set: (obj: Record<string, unknown>, key: string, val: unknown) => {
       obj[key] = val;
     },
-  } as VueInstance;
+  };
 };
 
 describe('parser', () => {
@@ -251,7 +251,7 @@ describe('parser', () => {
       
       expect(result.type).toBe('select');
       expect(result.items).toHaveLength(3);
-      expect(result.items[0]).toEqual({ value: 'option1', label: 'option1' });
+      expect(result.items?.[0]).toEqual({ value: 'option1', label: 'option1' });
     });
 
     it('should parse oneOf array as radio', () => {

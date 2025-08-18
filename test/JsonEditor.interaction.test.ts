@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import JsonEditor from '../src/JsonEditor.vue';
 
@@ -64,7 +64,8 @@ describe('JsonEditor - Interaction Tests', () => {
     expect(wrapper.emitted('input')).toBeTruthy();
     
     // Check that the emitted value contains the updated data
-    const emittedData = wrapper.emitted('input')?.[1]?.[0]; // Get the second emission
+    const emittedEvents = wrapper.emitted('input');
+    const emittedData = emittedEvents?.[emittedEvents.length - 1]?.[0]; // Get the last emission
     expect(emittedData).toMatchObject({ email: 'john@example.com' });
   });
 
@@ -77,14 +78,17 @@ describe('JsonEditor - Interaction Tests', () => {
     });
 
     const checkbox = wrapper.find('input[type="checkbox"]');
-    await checkbox.setChecked(true);
+    // Manually set the checked property and trigger input event
+    (checkbox.element as HTMLInputElement).checked = true;
+    await checkbox.trigger('input');
 
     // Check that the input event was emitted
     expect(wrapper.emitted('input')).toBeTruthy();
     
-    // Check that the input event was emitted
-    expect(wrapper.emitted('input')).toBeTruthy();
-    // Note: We're not checking the exact data structure as it may vary
+    // Check that the emitted value contains the updated data
+    const emittedEvents = wrapper.emitted('input');
+    const emittedData = emittedEvents?.[emittedEvents.length - 1]?.[0]; // Get the last emission
+    expect(emittedData).toMatchObject({ active: true });
   });
 
   it('should emit input event when select value changes', async () => {
@@ -96,14 +100,17 @@ describe('JsonEditor - Interaction Tests', () => {
     });
 
     const select = wrapper.find('select');
-    await select.setValue('admin');
+    // Manually set the value and trigger input event
+    (select.element as HTMLSelectElement).value = 'admin';
+    await select.trigger('input');
 
     // Check that the input event was emitted
     expect(wrapper.emitted('input')).toBeTruthy();
     
-    // Check that the input event was emitted
-    expect(wrapper.emitted('input')).toBeTruthy();
-    // Note: We're not checking the exact data structure as it may vary
+    // Check that the emitted value contains the updated data
+    const emittedEvents = wrapper.emitted('input');
+    const emittedData = emittedEvents?.[emittedEvents.length - 1]?.[0]; // Get the last emission
+    expect(emittedData).toMatchObject({ role: 'admin' });
   });
 
   it('should emit submit event when form is submitted', async () => {
@@ -175,7 +182,7 @@ describe('JsonEditor - Interaction Tests', () => {
     await input.setValue('New Name');
 
     // Call reset method
-    wrapper.vm.reset();
+    (wrapper.vm as any).reset();
 
     // Check that the input event was emitted with default value
     const emittedEvents = wrapper.emitted('input');
@@ -195,12 +202,12 @@ describe('JsonEditor - Interaction Tests', () => {
     });
 
     // Set error message
-    wrapper.vm.setErrorMessage('Test error message');
-    expect(wrapper.vm.error).toBe('Test error message');
+    (wrapper.vm as any).setErrorMessage('Test error message');
+    expect((wrapper.vm as any).error).toBe('Test error message');
 
     // Clear error message
-    wrapper.vm.clearErrorMessage();
-    expect(wrapper.vm.error).toBeNull();
+    (wrapper.vm as any).clearErrorMessage();
+    expect((wrapper.vm as any).error).toBeNull();
   });
 
   it('should get form reference correctly', () => {
@@ -211,7 +218,7 @@ describe('JsonEditor - Interaction Tests', () => {
       },
     });
 
-    const formRef = wrapper.vm.form();
+    const formRef = (wrapper.vm as any).form();
     expect(formRef).toBeInstanceOf(HTMLFormElement);
   });
 

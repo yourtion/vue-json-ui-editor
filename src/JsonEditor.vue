@@ -109,7 +109,7 @@ export default {
       nodes.push(createElement(components.description.component, this.schema.description));
     }
     if (this.error) {
-      const errorOptions = this.elementOptions(components.error);
+      const errorOptions = (this as any).elementOptions(components.error);
       const errorNodes = [];
       if (components.error.option.native) {
         errorNodes.push(this.error);
@@ -120,7 +120,7 @@ export default {
     const formNode = {
       root: {},
     };
-    function createForm(fields, sub) {
+    const createForm = (fields: any, sub?: any) => {
       let node;
       if (sub) {
         node = setVal(formNode, sub.pop(), {});
@@ -134,7 +134,7 @@ export default {
           if (key.indexOf("$") === 0) return;
           const field = fields[key];
           if (field.$sub) {
-            return createForm.call(this, field, sub ? [...sub, key] : [key]);
+            return createForm(field, sub ? [...sub, key] : [key]);
           }
           const fieldName = field.name;
 
@@ -147,7 +147,7 @@ export default {
             : undefined;
           // eslint-disable-next-line
           const element = field.component
-            ? customComponent
+            ? customComponent!
             : Object.hasOwn(field, "items") && field.type !== "select"
               ? components[`${field.type}group`] || defaultGroup
               : components[field.type] || defaultInput;
@@ -160,8 +160,18 @@ export default {
               value: fieldValue,
             },
             on: {
-              input: (event) => {
-                const value = event && event.target ? event.target.value : event;
+              input: (event: any) => {
+                let value;
+                if (event && event.target) {
+                  // For checkbox inputs, use checked property instead of value
+                  if (event.target.type === 'checkbox') {
+                    value = event.target.checked;
+                  } else {
+                    value = event.target.value;
+                  }
+                } else {
+                  value = event;
+                }
                 const ns = fieldName.split(".");
                 const n = ns.pop();
                 const ret = ns.length > 0 ? initChild(this.data, ns) : this.data;
@@ -179,19 +189,19 @@ export default {
           switch (field.type) {
             case "text":
               if (Object.hasOwn(field, "placeholder")) {
-                if (!input.attrs) input.attrs = {};
-                input.attrs.placeholder = field.placeholder;
+                if (!(input as any).attrs) (input as any).attrs = {};
+                (input as any).attrs.placeholder = field.placeholder;
               }
               break;
             case "textarea":
-              if (element.option.native) {
-                input.domProps.innerHTML = fieldValue;
+              if ((element.option as any).native) {
+                (input.domProps as any).innerHTML = fieldValue;
               }
               break;
             case "radio":
             case "checkbox":
               if (Object.hasOwn(field, "items")) {
-                field.items.forEach((item) => {
+                field.items.forEach((item: any) => {
                   const itemOptions = this.elementOptions(components[field.type], item, item, item);
                   children.push(
                     createElement(components[field.type].component, itemOptions, item.label),
@@ -203,7 +213,7 @@ export default {
               if (!field.required) {
                 children.push(createElement(components.option.component));
               }
-              field.items.forEach((option) => {
+              field.items.forEach((option: any) => {
                 const optionOptions = this.elementOptions(
                   components.option,
                   {
@@ -229,7 +239,7 @@ export default {
           const inputElement = createElement(element.component, input, children);
 
           const formControlsNodes = [];
-          if (field.label && !option.disableWrappingLabel) {
+          if (field.label && !(option as any).disableWrappingLabel) {
             const labelOptions = this.elementOptions(components.label, field, field);
             const labelNodes = [];
             if (components.label.option.native) {
@@ -273,13 +283,13 @@ export default {
           } else {
             formControlsNodes.forEach((node) => formNodes.push(node));
           }
-          node[key] = formNodes[0];
+          (node as any)[key] = formNodes[0];
         });
       }
-    }
-    createForm.call(this, this.fields);
+    };
+    createForm(this.fields);
 
-    function createNode(fields, sub) {
+    const createNode = (fields: any, sub?: any) => {
       const nodes = [];
       const subName = sub && sub.pop();
       if (fields.$title) {
@@ -297,7 +307,7 @@ export default {
         if (key.indexOf("$") === 0) return;
         const field = fields[key];
         if (field.$sub) {
-          const node = createNode.call(this, field, sub ? [...sub, key] : [key]);
+          const node = createNode(field, sub ? [...sub, key] : [key]);
           nodes.push(
             createElement(
               "div",
@@ -308,28 +318,28 @@ export default {
             ),
           );
         } else if (subName) {
-          nodes.push(getChild(formNode, subName.split("."))[key]);
+          nodes.push((getChild(formNode, subName.split(".")) as any)[key]);
         } else {
-          nodes.push(formNode.root[key]);
+          nodes.push((formNode.root as any)[key]);
         }
       });
       return nodes;
-    }
-    const formNodes = createNode.call(this, this.fields);
+    };
+    const formNodes = createNode(this.fields);
     allFormNodes.push(formNodes);
 
-    const labelOptions = this.elementOptions(components.label);
+    const labelOptions = (this as any).elementOptions(components.label);
     const button = Object.hasOwn(this.$slots, "default")
       ? { component: this.$slots.default, option }
       : components.button;
     if (button.component instanceof Array) {
       allFormNodes.push(createElement(components.label.component, labelOptions, button.component));
     } else {
-      const buttonOptions = this.elementOptions(button);
+      const buttonOptions = (this as any).elementOptions(button);
       const buttonElement = createElement(button.component, buttonOptions, button.option.label);
       allFormNodes.push(createElement(components.label.component, labelOptions, [buttonElement]));
     }
-    const formOptions = this.elementOptions(components.form, {
+    const formOptions = (this as any).elementOptions(components.form, {
       autocomplete: this.autoComplete,
       novalidate: this.noValidate,
     });
@@ -339,13 +349,13 @@ export default {
         {
           ref: "__form",
           on: {
-            submit: (event) => {
+            submit: (event: Event) => {
               event.stopPropagation();
               this.submit(event);
             },
-            invalid: this.invalid,
+            invalid: (this as any).invalid,
           },
-          ...formOptions,
+          ...(formOptions as any),
         },
         allFormNodes,
       ),
@@ -355,6 +365,9 @@ export default {
   mounted(): void {
     this.reset();
   },
+  /**
+   * Set component configuration
+   */
   setComponent(type: string, component: string, option: ComponentOption = {}): void {
     components[type] = { component, option };
   },
@@ -380,7 +393,7 @@ export default {
           ? element.option
           : { ...element.option, native: undefined };
       const options = this.optionValue(field, elementProps, item);
-      return { [attrName]: { ...extendingOptions, ...options } };
+      return { [attrName]: { ...extendingOptions, ...(options as any) } };
     },
     /**
      * @private

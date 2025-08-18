@@ -10,11 +10,11 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       vue(),
-      dts({
+      ...(isLib ? [dts({
         insertTypesEntry: true,
         include: ['src/**/*'],
         exclude: ['src/**/*.test.*', 'src/**/*.spec.*']
-      })
+      })] : [])
     ],
     resolve: {
       alias: {
@@ -38,7 +38,8 @@ export default defineConfig(({ mode }) => {
         }
       }
     } : {
-      outDir: 'dist'
+      outDir: 'docs',
+      sourcemap: false
     },
     server: {
       port: 3000,

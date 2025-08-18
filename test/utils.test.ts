@@ -113,9 +113,9 @@ describe('utils', () => {
     it('should return undefined for non-existent properties', () => {
       const obj = { name: 'test' };
       
-      expect(getChild(obj, 'nonexistent')).toBeUndefined();
-      expect(getChild(obj, 'name.nested')).toBeUndefined();
-      expect(getChild(obj, 'user.profile.name')).toBeUndefined();
+      expect(getChild(obj, ['nonexistent'])).toBeUndefined();
+      expect(getChild(obj, ['name', 'nested'])).toBeUndefined();
+      expect(getChild(obj, ['user', 'profile', 'name'])).toBeUndefined();
     });
 
     it('should handle object with numeric keys', () => {
@@ -171,7 +171,7 @@ describe('utils', () => {
       initChild(obj, ['name']);
       
       expect(obj).toHaveProperty('name');
-      expect(obj.name).toEqual({});
+      expect((obj as any).name).toEqual({});
     });
 
     it('should initialize nested properties with array notation', () => {
@@ -179,44 +179,44 @@ describe('utils', () => {
       initChild(obj, ['user', 'profile', 'name']);
       
       expect(obj).toHaveProperty('user');
-      expect(obj.user).toHaveProperty('profile');
-      expect(obj.user.profile).toHaveProperty('name');
-      expect(obj.user.profile.name).toEqual({});
+      expect((obj as any).user).toHaveProperty('profile');
+      expect((obj as any).user.profile).toHaveProperty('name');
+      expect((obj as any).user.profile.name).toEqual({});
     });
 
     it('should not overwrite existing properties', () => {
       const obj = { user: { profile: { existing: 'value' } } };
       initChild(obj, ['user', 'profile', 'name']);
       
-      expect(obj.user.profile.existing).toBe('value');
-      expect(obj.user.profile.name).toEqual({});
+      expect((obj as any).user.profile.existing).toBe('value');
+      expect((obj as any).user.profile.name).toEqual({});
     });
 
     it('should handle numeric keys as object properties', () => {
       const obj = {};
       initChild(obj, ['users', '0', 'profile']);
       
-      expect(typeof obj.users).toBe('object');
-      expect(obj.users['0']).toEqual({ profile: {} });
-      expect(obj.users['0']).toHaveProperty('profile');
+      expect(typeof (obj as any).users).toBe('object');
+      expect((obj as any).users['0']).toEqual({ profile: {} });
+      expect((obj as any).users['0']).toHaveProperty('profile');
     });
 
     it('should handle mixed nested object paths', () => {
       const obj = {};
       initChild(obj, ['data', 'items', '0', 'metadata', 'tags', '1']);
       
-      expect(typeof obj.data).toBe('object');
-      expect(obj.data).toHaveProperty('items');
-      expect(typeof obj.data.items).toBe('object');
-      expect(obj.data.items['0']).toHaveProperty('metadata');
-      expect(obj.data.items['0'].metadata).toHaveProperty('tags');
-      expect(typeof obj.data.items['0'].metadata.tags).toBe('object');
+      expect(typeof (obj as any).data).toBe('object');
+      expect((obj as any).data).toHaveProperty('items');
+      expect(typeof (obj as any).data.items).toBe('object');
+      expect((obj as any).data.items['0']).toHaveProperty('metadata');
+      expect((obj as any).data.items['0'].metadata).toHaveProperty('tags');
+      expect(typeof (obj as any).data.items['0'].metadata.tags).toBe('object');
     });
 
     it('should handle empty path', () => {
       const obj = { existing: 'value' };
       
-      initChild(obj, '');
+      initChild(obj, []);
       
       expect(obj.existing).toBe('value');
     });
@@ -231,10 +231,10 @@ describe('utils', () => {
         }
       };
       
-      initChild(obj, 'user.profile');
+      initChild(obj, ['user', 'profile']);
       
-      expect(obj.user.profile.name).toBe('Alice');
-      expect(obj.user.profile.age).toBe(25);
+      expect((obj as any).user.profile.name).toBe('Alice');
+      expect((obj as any).user.profile.age).toBe(25);
     });
   });
 
@@ -244,7 +244,7 @@ describe('utils', () => {
       
       setVal(obj, 'name', 'Alice');
       
-      expect(obj.name).toBe('Alice');
+      expect((obj as any).name).toBe('Alice');
     });
 
     it('should set nested property value with dot notation', () => {
@@ -252,7 +252,7 @@ describe('utils', () => {
       
       setVal(obj, 'user.profile.name', 'Alice');
       
-      expect(obj.user.profile.name).toBe('Alice');
+      expect((obj as any).user.profile.name).toBe('Alice');
     });
 
     it('should overwrite existing values', () => {
@@ -266,7 +266,7 @@ describe('utils', () => {
       
       setVal(obj, 'user.profile.name', 'Alice');
       
-      expect(obj.user.profile.name).toBe('Alice');
+      expect((obj as any).user.profile.name).toBe('Alice');
     });
 
     it('should handle array indices', () => {
@@ -275,8 +275,8 @@ describe('utils', () => {
       setVal(obj, 'users.0.name', 'Alice');
       setVal(obj, 'users.1.name', 'Bob');
       
-      expect(obj.users[0].name).toBe('Alice');
-      expect(obj.users[1].name).toBe('Bob');
+      expect((obj as any).users[0].name).toBe('Alice');
+      expect((obj as any).users[1].name).toBe('Bob');
     });
 
     it('should handle different value types', () => {
@@ -289,12 +289,12 @@ describe('utils', () => {
       setVal(obj, 'array', [1, 2, 3]);
       setVal(obj, 'object', { key: 'value' });
       
-      expect(obj.string).toBe('text');
-      expect(obj.number).toBe(42);
-      expect(obj.boolean).toBe(true);
-      expect(obj.null).toBe(null);
-      expect(obj.array).toEqual([1, 2, 3]);
-      expect(obj.object).toEqual({ key: 'value' });
+      expect((obj as any).string).toBe('text');
+      expect((obj as any).number).toBe(42);
+      expect((obj as any).boolean).toBe(true);
+      expect((obj as any).null).toBe(null);
+      expect((obj as any).array).toEqual([1, 2, 3]);
+      expect((obj as any).object).toEqual({ key: 'value' });
     });
 
     it('should create intermediate objects as needed', () => {
@@ -302,10 +302,10 @@ describe('utils', () => {
       
       setVal(obj, 'data.items.0.metadata.tags.1', 'tag2');
       
-      expect(obj.data.items['0'].metadata.tags['1']).toBe('tag2');
+      expect((obj as any).data.items['0'].metadata.tags['1']).toBe('tag2');
       // Note: setVal creates objects, not arrays, even for numeric keys
-      expect(typeof obj.data.items).toBe('object');
-      expect(typeof obj.data.items['0'].metadata.tags).toBe('object');
+      expect(typeof (obj as any).data.items).toBe('object');
+      expect(typeof (obj as any).data.items['0'].metadata.tags).toBe('object');
     });
 
     it('should handle empty path', () => {
@@ -336,12 +336,12 @@ describe('utils', () => {
       
       setVal(obj, 'user.profile.email', 'alice@example.com');
       
-      expect(obj.user.profile.name).toBe('Alice');
-      expect(obj.user.profile.age).toBe(25);
-      expect(obj.user.profile.settings.theme).toBe('dark');
-      expect(obj.user.permissions).toEqual(['read', 'write']);
-      expect(obj.config.version).toBe('1.0');
-      expect(obj.user.profile.email).toBe('alice@example.com');
+      expect((obj as any).user.profile.name).toBe('Alice');
+      expect((obj as any).user.profile.age).toBe(25);
+      expect((obj as any).user.profile.settings.theme).toBe('dark');
+      expect((obj as any).user.permissions).toEqual(['read', 'write']);
+      expect((obj as any).config.version).toBe('1.0');
+      expect((obj as any).user.profile.email).toBe('alice@example.com');
     });
   });
 });

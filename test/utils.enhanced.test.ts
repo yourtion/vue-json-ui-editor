@@ -184,10 +184,10 @@ describe('utils - Enhanced Tests', () => {
 
       const result = initChild(obj, ['level1', 'level2', 'level3']);
       
-      expect(typeof obj.level1).toBe('object');
-      expect(typeof obj.level1.level2).toBe('object');
-      expect(typeof obj.level1.level2.level3).toBe('object');
-      expect(result).toBe(obj.level1.level2.level3);
+      expect(typeof (obj as any).level1).toBe('object');
+      expect(typeof (obj as any).level1.level2).toBe('object');
+      expect(typeof (obj as any).level1.level2.level3).toBe('object');
+      expect(result).toBe((obj as any).level1.level2.level3);
       expect(result).toEqual({});
     });
 
@@ -200,10 +200,10 @@ describe('utils - Enhanced Tests', () => {
 
       const result = initChild(obj, ['level1', 'level2', 'level3']);
       
-      expect(obj.level1.existing).toBe('value'); // Should preserve existing
-      expect(typeof obj.level1.level2).toBe('object');
-      expect(typeof obj.level1.level2.level3).toBe('object');
-      expect(result).toBe(obj.level1.level2.level3);
+      expect((obj as any).level1.existing).toBe('value'); // Should preserve existing
+      expect(typeof (obj as any).level1.level2).toBe('object');
+      expect(typeof (obj as any).level1.level2.level3).toBe('object');
+      expect(result).toBe((obj as any).level1.level2.level3);
     });
 
     it('should handle initialization with special keys', () => {
@@ -211,10 +211,10 @@ describe('utils - Enhanced Tests', () => {
 
       const result = initChild(obj, ['key.with.dots', 'key-with-dashes', 'key_with_underscores']);
       
-      expect(typeof obj['key.with.dots']).toBe('object');
-      expect(typeof obj['key.with.dots']['key-with-dashes']).toBe('object');
-      expect(typeof obj['key.with.dots']['key-with-dashes']['key_with_underscores']).toBe('object');
-      expect(result).toBe(obj['key.with.dots']['key-with-dashes']['key_with_underscores']);
+      expect(typeof (obj as any)['key.with.dots']).toBe('object');
+      expect(typeof (obj as any)['key.with.dots']['key-with-dashes']).toBe('object');
+      expect(typeof (obj as any)['key.with.dots']['key-with-dashes']['key_with_underscores']).toBe('object');
+      expect(result).toBe((obj as any)['key.with.dots']['key-with-dashes']['key_with_underscores']);
     });
 
     it('should handle error cases gracefully', () => {
@@ -234,15 +234,15 @@ describe('utils - Enhanced Tests', () => {
 
       // Set shallow value
       setVal(obj, 'shallow', 'value1');
-      expect(obj.shallow).toBe('value1');
+      expect((obj as any).shallow).toBe('value1');
 
       // Set deep value
       setVal(obj, 'deep.nested.value', 'value2');
-      expect(obj.deep.nested.value).toBe('value2');
+      expect((obj as any).deep.nested.value).toBe('value2');
 
       // Set value with array notation
       setVal(obj, ['array', '0', 'item'], 'value3');
-      expect(obj.array['0'].item).toBe('value3');
+      expect((obj as any).array['0'].item).toBe('value3');
     });
 
     it('should handle setting various value types', () => {
@@ -257,14 +257,14 @@ describe('utils - Enhanced Tests', () => {
       setVal(obj, 'array', [1, 2, 3]);
       setVal(obj, 'date', new Date('2023-01-01'));
 
-      expect(obj.string).toBe('text');
-      expect(obj.number).toBe(42);
-      expect(obj.boolean).toBe(true);
-      expect(obj.null).toBe(null);
-      expect(obj.undefined).toBe(undefined);
-      expect(obj.object).toEqual({ key: 'value' });
-      expect(obj.array).toEqual([1, 2, 3]);
-      expect(obj.date).toEqual(new Date('2023-01-01'));
+      expect((obj as any).string).toBe('text');
+      expect((obj as any).number).toBe(42);
+      expect((obj as any).boolean).toBe(true);
+      expect((obj as any).null).toBe(null);
+      expect((obj as any).undefined).toBe(undefined);
+      expect((obj as any).object).toEqual({ key: 'value' });
+      expect((obj as any).array).toEqual([1, 2, 3]);
+      expect((obj as any).date).toEqual(new Date('2023-01-01'));
     });
 
     it('should handle setting values with special keys', () => {
@@ -295,8 +295,8 @@ describe('utils - Enhanced Tests', () => {
       setVal(obj, 'existing', 'new value');
       setVal(obj, 'nested.existing', 'new nested value');
 
-      expect(obj.existing).toBe('new value');
-      expect(obj.nested.existing).toBe('new nested value');
+      expect((obj as any).existing).toBe('new value');
+      expect((obj as any).nested.existing).toBe('new nested value');
     });
 
     it('should handle empty path', () => {
@@ -304,7 +304,7 @@ describe('utils - Enhanced Tests', () => {
       
       // Should not modify the object with empty path
       setVal(obj, '', 'newValue');
-      expect(obj.existing).toBe('value');
+      expect((obj as any).existing).toBe('value');
       // Empty string path behavior may vary, let's check it doesn't crash
       expect(() => setVal(obj, '', 'newValue')).not.toThrow();
     });
@@ -313,7 +313,7 @@ describe('utils - Enhanced Tests', () => {
       const obj = {};
 
       setVal(obj, ['path', 'to', 'value'], 'test');
-      expect(obj.path.to.value).toBe('test');
+      expect((obj as any).path.to.value).toBe('test');
     });
   });
 
@@ -341,11 +341,11 @@ describe('utils - Enhanced Tests', () => {
 
       // Set a value in the new path
       setVal(cloned, 'users.2.name', 'Charlie');
-      expect(cloned.users[2].name).toBe('Charlie');
+      expect((cloned as any).users[2].name).toBe('Charlie');
 
       // Verify original object is unchanged
-      expect(obj.users).toHaveLength(2);
-      expect(cloned.users).toHaveLength(3);
+      expect((obj as any).users).toHaveLength(2);
+      expect((cloned as any).users).toHaveLength(3);
     });
   });
 });
