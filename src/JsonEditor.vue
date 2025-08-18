@@ -1,33 +1,53 @@
-<script>
-import { loadFields } from './parser';
-import { initChild, getChild, setVal, deepClone } from './utils';
-const option = { native: true };
-const components = {
-  title: { component: 'h1', option },
-  description: { component: 'p', option },
-  error: { component: 'div', option },
-  form: { component: 'form', option },
-  file: { component: 'input', option },
-  label: { component: 'label', option },
-  input: { component: 'input', option },
-  radio: { component: 'input', option },
-  select: { component: 'select', option },
-  option: { component: 'option', option },
+<script lang="ts">
+import { loadFields } from "./parser";
+import { initChild, getChild, setVal, deepClone } from "./utils";
+import type { JsonSchema, FormField, Fields, VueInstance } from "./types";
+
+interface ComponentOption {
+  native?: boolean;
+  type?: string;
+  label?: string;
+}
+
+interface ComponentConfig {
+  component: string;
+  option: ComponentOption;
+}
+
+const option: ComponentOption = { native: true };
+const components: Record<string, ComponentConfig> = {
+  title: { component: "h1", option },
+  description: { component: "p", option },
+  error: { component: "div", option },
+  form: { component: "form", option },
+  file: { component: "input", option },
+  label: { component: "label", option },
+  input: { component: "input", option },
+  radio: { component: "input", option },
+  select: { component: "select", option },
+  option: { component: "option", option },
   button: {
-    component: 'button',
+    component: "button",
     option: {
       ...option,
-      type: 'submit',
-      label: 'Submit',
+      type: "submit",
+      label: "Submit",
     },
   },
-  checkbox: { component: 'input', option },
-  textarea: { component: 'textarea', option },
-  radiogroup: { component: 'div', option },
-  checkboxgroup: { component: 'div', option },
+  checkbox: { component: "input", option },
+  textarea: { component: "textarea", option },
+  radiogroup: { component: "div", option },
+  checkboxgroup: { component: "div", option },
 };
-const defaultInput = { component: 'input', option };
-const defaultGroup = { component: 'div', option };
+const defaultInput: ComponentConfig = { component: "input", option };
+const defaultGroup: ComponentConfig = { component: "div", option };
+
+interface JsonEditorData {
+  default: Record<string, unknown>;
+  fields: Fields;
+  error: string | null;
+  data: Record<string, unknown>;
+}
 
 /**
  * Edit JSON in UI form with JSON Schema and Vue.js `<json-editor>` component.
@@ -36,7 +56,7 @@ const defaultGroup = { component: 'div', option };
  * @license MIT
  */
 export default {
-  name: 'JsonEditor',
+  name: "JsonEditor",
   props: {
     /**
      * The JSON Schema object. Use the `v-if` directive to load asynchronous schema.
@@ -61,7 +81,7 @@ export default {
      */
     inputWrappingClass: { type: String },
   },
-  data() {
+  data(): JsonEditorData {
     return {
       default: {},
       fields: {},
@@ -69,12 +89,18 @@ export default {
       data: {},
     };
   },
-  created() {
-    loadFields(this, deepClone(this.schema));
+  created(): void {
+    loadFields(this as VueInstance, deepClone(this.schema) as JsonSchema);
     this.default = deepClone(this.value);
     this.data = this.value;
   },
-  render(createElement) {
+  render(createElement: Function) {
+    // Handle null or undefined schema gracefully
+    if (!this.schema) {
+      console.warn("JsonEditor: schema is required but was not provided");
+      return createElement("div", "Invalid schema: schema is required");
+    }
+
     const nodes = [];
     if (this.schema.title) {
       nodes.push(createElement(components.title.component, this.schema.title));
@@ -83,7 +109,7 @@ export default {
       nodes.push(createElement(components.description.component, this.schema.description));
     }
     if (this.error) {
-      const errorOptions = this.elementOptions(components.error);
+      const errorOptions = (this as any).elementOptions(components.error);
       const errorNodes = [];
       if (components.error.option.native) {
         errorNodes.push(this.error);
@@ -94,7 +120,7 @@ export default {
     const formNode = {
       root: {},
     };
-    function createForm(fields, sub) {
+    const createForm = (fields: any, sub?: any) => {
       let node;
       if (sub) {
         node = setVal(formNode, sub.pop(), {});
@@ -103,25 +129,27 @@ export default {
       }
 
       if (Object.keys(fields).length) {
-        Object.keys(fields).forEach(key => {
+        Object.keys(fields).forEach((key) => {
           const formNodes = [];
-          if (key.indexOf('$') === 0) return;
+          if (key.indexOf("$") === 0) return;
           const field = fields[key];
           if (field.$sub) {
-            return createForm.call(this, field, sub ? [...sub, key] : [key]);
+            return createForm(field, sub ? [...sub, key] : [key]);
           }
           const fieldName = field.name;
 
-          const fieldValue = getChild(this.value, fieldName.split('.'));
+          const fieldValue = getChild(this.value, fieldName.split("."));
           if (!field.value) {
             field.value = fieldValue;
           }
-          const customComponent = field.component ? { component: field.component, option: {}} : undefined;
+          const customComponent = field.component
+            ? { component: field.component, option: {} }
+            : undefined;
           // eslint-disable-next-line
           const element = field.component
-            ? customComponent
-            : field.hasOwnProperty('items') && field.type !== 'select'
-              ? components[`${ field.type }group`] || defaultGroup
+            ? customComponent!
+            : Object.hasOwn(field, "items") && field.type !== "select"
+              ? components[`${field.type}group`] || defaultGroup
               : components[field.type] || defaultInput;
           const fieldOptions = this.elementOptions(element, field, field);
           const children = [];
@@ -132,16 +160,26 @@ export default {
               value: fieldValue,
             },
             on: {
-              input: event => {
-                const value = event && event.target ? event.target.value : event;
-                const ns = fieldName.split('.');
+              input: (event: any) => {
+                let value;
+                if (event && event.target) {
+                  // For checkbox inputs, use checked property instead of value
+                  if (event.target.type === 'checkbox') {
+                    value = event.target.checked;
+                  } else {
+                    value = event.target.value;
+                  }
+                } else {
+                  value = event;
+                }
+                const ns = fieldName.split(".");
                 const n = ns.pop();
                 const ret = ns.length > 0 ? initChild(this.data, ns) : this.data;
                 this.$set(ret, n, value);
                 /**
                  * Fired synchronously when the value of an element is changed.
                  */
-                this.$emit('input', this.data);
+                this.$emit("input", this.data);
               },
               change: this.changed,
             },
@@ -149,37 +187,39 @@ export default {
           };
           delete field.value;
           switch (field.type) {
-            case 'text':
-              if (field.hasOwnProperty('placeholder')) {
-                if (!input.attrs) input.attrs = {}
-                input.attrs.placeholder = field.placeholder
+            case "text":
+              if (Object.hasOwn(field, "placeholder")) {
+                if (!(input as any).attrs) (input as any).attrs = {};
+                (input as any).attrs.placeholder = field.placeholder;
               }
               break;
-            case 'textarea':
-              if (element.option.native) {
-                input.domProps.innerHTML = fieldValue;
+            case "textarea":
+              if ((element.option as any).native) {
+                (input.domProps as any).innerHTML = fieldValue;
               }
               break;
-            case 'radio':
-            case 'checkbox':
-              if (field.hasOwnProperty('items')) {
-                field.items.forEach(item => {
+            case "radio":
+            case "checkbox":
+              if (Object.hasOwn(field, "items")) {
+                field.items.forEach((item: any) => {
                   const itemOptions = this.elementOptions(components[field.type], item, item, item);
-                  children.push(createElement(components[field.type].component, itemOptions, item.label));
+                  children.push(
+                    createElement(components[field.type].component, itemOptions, item.label),
+                  );
                 });
               }
               break;
-            case 'select':
+            case "select":
               if (!field.required) {
                 children.push(createElement(components.option.component));
               }
-              field.items.forEach(option => {
+              field.items.forEach((option: any) => {
                 const optionOptions = this.elementOptions(
                   components.option,
                   {
                     value: option.value,
                   },
-                  field
+                  field,
                 );
                 children.push(
                   createElement(
@@ -190,8 +230,8 @@ export default {
                       },
                       ...optionOptions,
                     },
-                    option.label
-                  )
+                    option.label,
+                  ),
                 );
               });
               break;
@@ -199,222 +239,231 @@ export default {
           const inputElement = createElement(element.component, input, children);
 
           const formControlsNodes = [];
-          if (field.label && !option.disableWrappingLabel) {
+          if (field.label && !(option as any).disableWrappingLabel) {
             const labelOptions = this.elementOptions(components.label, field, field);
             const labelNodes = [];
             if (components.label.option.native) {
               labelNodes.push(
                 createElement(
-                  'span',
+                  "span",
                   {
                     attrs: {
-                      'data-required-field': field.required ? 'true' : 'false',
+                      "data-required-field": field.required ? "true" : "false",
                     },
                   },
-                  field.label
-                )
+                  field.label,
+                ),
               );
             }
             labelNodes.push(inputElement);
             if (field.description) {
-              labelNodes.push(createElement('br'));
-              labelNodes.push(createElement('small', field.description));
+              labelNodes.push(createElement("br"));
+              labelNodes.push(createElement("small", field.description));
             }
-            formControlsNodes.push(createElement(components.label.component, labelOptions, labelNodes));
+            formControlsNodes.push(
+              createElement(components.label.component, labelOptions, labelNodes),
+            );
           } else {
             formControlsNodes.push(inputElement);
             if (field.description) {
-              formControlsNodes.push(createElement('br'));
-              formControlsNodes.push(createElement('small', field.description));
+              formControlsNodes.push(createElement("br"));
+              formControlsNodes.push(createElement("small", field.description));
             }
           }
           if (this.inputWrappingClass) {
             formNodes.push(
               createElement(
-                'div',
+                "div",
                 {
                   class: this.inputWrappingClass,
                 },
-                formControlsNodes
-              )
+                formControlsNodes,
+              ),
             );
           } else {
-            formControlsNodes.forEach(node => formNodes.push(node));
+            formControlsNodes.forEach((node) => formNodes.push(node));
           }
-          node[key] = formNodes[0];
+          (node as any)[key] = formNodes[0];
         });
       }
-    }
-    createForm.call(this, this.fields);
+    };
+    createForm(this.fields);
 
-    function createNode(fields, sub) {
+    const createNode = (fields: any, sub?: any) => {
       const nodes = [];
       const subName = sub && sub.pop();
       if (fields.$title) {
         nodes.push(
           createElement(
-            'div',
+            "div",
             {
-              class: 'sub-title',
+              class: "sub-title",
             },
-            fields.$title
-          )
+            fields.$title,
+          ),
         );
       }
-      Object.keys(fields).forEach(key => {
-        if (key.indexOf('$') === 0) return;
+      Object.keys(fields).forEach((key) => {
+        if (key.indexOf("$") === 0) return;
         const field = fields[key];
         if (field.$sub) {
-          const node = createNode.call(this, field, sub ? [...sub, key] : [key]);
+          const node = createNode(field, sub ? [...sub, key] : [key]);
           nodes.push(
             createElement(
-              'div',
+              "div",
               {
-                class: 'sub',
+                class: "sub",
               },
-              node
-            )
+              node,
+            ),
           );
         } else if (subName) {
-          nodes.push(getChild(formNode, subName.split('.'))[key]);
+          nodes.push((getChild(formNode, subName.split(".")) as any)[key]);
         } else {
-          nodes.push(formNode.root[key]);
+          nodes.push((formNode.root as any)[key]);
         }
       });
       return nodes;
-    }
-    const formNodes = createNode.call(this, this.fields);
+    };
+    const formNodes = createNode(this.fields);
     allFormNodes.push(formNodes);
 
-    const labelOptions = this.elementOptions(components.label);
-    const button = this.$slots.hasOwnProperty('default')
+    const labelOptions = (this as any).elementOptions(components.label);
+    const button = Object.hasOwn(this.$slots, "default")
       ? { component: this.$slots.default, option }
       : components.button;
     if (button.component instanceof Array) {
       allFormNodes.push(createElement(components.label.component, labelOptions, button.component));
     } else {
-      const buttonOptions = this.elementOptions(button);
+      const buttonOptions = (this as any).elementOptions(button);
       const buttonElement = createElement(button.component, buttonOptions, button.option.label);
       allFormNodes.push(createElement(components.label.component, labelOptions, [buttonElement]));
     }
-    const formOptions = this.elementOptions(components.form, {
-      autocomplete: this.autocomplete,
-      novalidate: this.novalidate,
+    const formOptions = (this as any).elementOptions(components.form, {
+      autocomplete: this.autoComplete,
+      novalidate: this.noValidate,
     });
     nodes.push(
       createElement(
         components.form.component,
         {
-          ref: '__form',
+          ref: "__form",
           on: {
-            submit: event => {
+            submit: (event: Event) => {
               event.stopPropagation();
               this.submit(event);
             },
-            invalid: this.invalid,
+            invalid: (this as any).invalid,
           },
-          ...formOptions,
+          ...(formOptions as any),
         },
-        allFormNodes
-      )
+        allFormNodes,
+      ),
     );
-    return createElement('div', nodes);
+    return createElement("div", nodes);
   },
-  mounted() {
+  mounted(): void {
     this.reset();
   },
-  setComponent(type, component, option = {}) {
+  /**
+   * Set component configuration
+   */
+  setComponent(type: string, component: string, option: ComponentOption = {}): void {
     components[type] = { component, option };
   },
   methods: {
     /**
      * @private
      */
-    optionValue(field, target, item = {}) {
-      return typeof target === 'function' ? target({ vm: this, field, item }) : target;
+    optionValue(field: FormField, target: unknown, item: Record<string, unknown> = {}): unknown {
+      return typeof target === "function" ? target({ vm: this, field, item }) : target;
     },
     /**
      * @private
      */
-    elementOptions(element, extendingOptions = {}, field = {}, item = {}) {
-      const attrName = element.option.native ? 'attrs' : 'props';
+    elementOptions(
+      element: ComponentConfig,
+      extendingOptions: Record<string, unknown> = {},
+      field: FormField = {} as FormField,
+      item: Record<string, unknown> = {},
+    ): Record<string, Record<string, unknown>> {
+      const attrName = element.option.native ? "attrs" : "props";
       const elementProps =
-        typeof element.option === 'function' ? element.option : { ...element.option, native: undefined };
+        typeof element.option === "function"
+          ? element.option
+          : { ...element.option, native: undefined };
       const options = this.optionValue(field, elementProps, item);
-      return { [attrName]: { ...extendingOptions, ...options }};
+      return { [attrName]: { ...extendingOptions, ...(options as any) } };
     },
     /**
      * @private
      */
-    changed(e) {
+    changed(e: Event): void {
       /**
        * Fired when a change to the element's value is committed by the user.
        */
-      this.$emit('change', e);
+      this.$emit("change", e);
     },
     /**
      * Get a form input reference
      */
-    input(name) {
+    input(name: string): HTMLElement {
       if (!this.$refs[name]) {
-        throw new Error(`Undefined input reference '${ name }'`);
+        throw new Error(`Undefined input reference '${name}'`);
       }
-      return this.$refs[name][0];
+      return (this.$refs[name] as HTMLElement[])[0];
     },
     /**
      * Get the form reference
      */
-    form() {
-      return this.$refs.__form;
+    form(): HTMLFormElement {
+      return this.$refs.__form as HTMLFormElement;
     },
     /**
      * Checks whether the form has any constraints and whether it satisfies them. If the form fails its constraints, the browser fires a cancelable `invalid` event at the element, and then returns false.
      */
-    checkValidity() {
-      return this.$refs.__form.checkValidity();
+    checkValidity(): boolean {
+      return (this.$refs.__form as HTMLFormElement).checkValidity();
     },
     /**
      * @private
      */
-    invalid(e) {
+    invalid(e: Event): void {
       /**
        * Fired when a submittable element has been checked and doesn't satisfy its constraints. The validity of submittable elements is checked before submitting their owner form, or after the `checkValidity()` of the element or its owner form is called.
        */
-      this.$emit('invalid', e);
+      this.$emit("invalid", e);
     },
     /**
      * Reset the value of all elements of the parent form.
      */
-    reset() {
-      for (const key in this.data) {
-        const ns = key.split('.');
-        const n = ns.pop();
-        const ret = ns.length > 0 ? initChild(this.data, ns) : this.data;
-        const value = getChild(this.default, key.split('.'));
-        this.$set(ret, n, value);
-      }
+    reset(): void {
+      // 重置data为default的深拷贝
+      this.data = deepClone(this.default);
+      // 触发input事件通知父组件数据已重置
+      this.$emit("input", this.data);
     },
     /**
      * Send the content of the form to the server
      */
-    submit(event) {
+    submit(event: Event): void {
       if (this.checkValidity()) {
         /**
          * Fired when a form is submitted
          */
-        this.$emit('submit', event);
+        this.$emit("submit", event);
       }
     },
     /**
      * Set a message error.
      */
-    setErrorMessage(message) {
+    setErrorMessage(message: string): void {
       this.error = message;
     },
     /**
      * clear the message error.
      */
-    clearErrorMessage() {
+    clearErrorMessage(): void {
       this.error = null;
     },
   },
