@@ -27,7 +27,10 @@
     "type-check": "vue-tsc --noEmit",
     "lint": "biome format --write src/",
     "format": "biome format --write src/",
-    "check": "npm run type-check && npm run lint && npm run test"
+    "check": "npm run type-check && npm run lint && npm run test",
+    "tag": "git tag v`node -p 'require(\"./package\").version'`",
+    "prepublishOnly": "checknpm run check && npm build:lib",
+    "postpublish": "npm run tag && git push && git push --tags"
   },
   "dependencies": {
     "element-ui": "^2.15.14",
