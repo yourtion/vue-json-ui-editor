@@ -95,6 +95,12 @@ export default {
     this.data = this.value;
   },
   render(createElement: Function) {
+    // Handle null or undefined schema gracefully
+    if (!this.schema) {
+      console.warn("JsonEditor: schema is required but was not provided");
+      return createElement("div", "Invalid schema: schema is required");
+    }
+
     const nodes = [];
     if (this.schema.title) {
       nodes.push(createElement(components.title.component, this.schema.title));
@@ -324,8 +330,8 @@ export default {
       allFormNodes.push(createElement(components.label.component, labelOptions, [buttonElement]));
     }
     const formOptions = this.elementOptions(components.form, {
-      autocomplete: this.autocomplete,
-      novalidate: this.novalidate,
+      autocomplete: this.autoComplete,
+      novalidate: this.noValidate,
     });
     nodes.push(
       createElement(
@@ -419,13 +425,10 @@ export default {
      * Reset the value of all elements of the parent form.
      */
     reset(): void {
-      for (const key in this.data) {
-        const ns = key.split(".");
-        const n = ns.pop() as string;
-        const ret = ns.length > 0 ? initChild(this.data, ns) : this.data;
-        const value = getChild(this.default, key.split("."));
-        this.$set(ret, n, value);
-      }
+      // 重置data为default的深拷贝
+      this.data = deepClone(this.default);
+      // 触发input事件通知父组件数据已重置
+      this.$emit("input", this.data);
     },
     /**
      * Send the content of the form to the server

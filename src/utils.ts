@@ -6,6 +6,12 @@ import type {
 } from "./types";
 
 export const deepClone: DeepCloneFunction = <T>(obj: T): T => {
+  if (obj === undefined || obj === null) {
+    return obj;
+  }
+  if (typeof obj !== "object") {
+    return obj;
+  }
   return JSON.parse(JSON.stringify(obj));
 };
 
@@ -28,6 +34,11 @@ export const getChild: GetChildFunction = (
   data: Record<string, unknown>,
   ns: string[],
 ): unknown => {
+  // Handle null or undefined data
+  if (data === null || data === undefined) {
+    return undefined;
+  }
+
   if (ns.length === 1) {
     return data[ns[0]];
   }
