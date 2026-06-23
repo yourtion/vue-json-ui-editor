@@ -4,15 +4,8 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import Subscription from './components/Subscription.vue';
-
-export default {
-  name: 'app',
-  components: {
-    Subscription,
-  },
-};
 </script>
 
 <style>

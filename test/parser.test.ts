@@ -7,9 +7,6 @@ const createMockVueInstance = (value: Record<string, unknown> = {}): VueInstance
   return {
     value,
     fields: {},
-    $set: (obj: Record<string, unknown>, key: string, val: unknown) => {
-      obj[key] = val;
-    },
   };
 };
 

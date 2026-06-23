@@ -1,57 +1,129 @@
-
-
+import { mount } from '@vue/test-utils';
 import JsonEditor from '../src/JsonEditor.vue';
 
 describe('JsonEditor', () => {
+  const mockSchema = {
+    type: 'object',
+    properties: {
+      name: { type: 'string', title: 'Name' },
+      email: { type: 'string', format: 'email', title: 'Email' }
+    }
+  };
 
-  describe('hook', () => {
-    it('should have a created hook', () => {
-      expect(typeof JsonEditor.created).toBe('function');
+  describe('component structure', () => {
+    it('should be a valid Vue component', () => {
+      expect(JsonEditor).toBeDefined();
+      expect(JsonEditor.name).toBe('JsonEditor');
     });
 
-    it('should have a mounted hook', () => {
-      expect(typeof JsonEditor.mounted).toBe('function');
-    });
-  });
-
-  describe('method', () => {
-    it('should have a changed method', () => {
-      expect(typeof JsonEditor.methods.changed).toBe('function');
-    });
-
-    it('should have a input method', () => {
-      expect(typeof JsonEditor.methods.input).toBe('function');
-    });
-
-    it('should have a reset method', () => {
-      expect(typeof JsonEditor.methods.reset).toBe('function');
-    });
-
-    it('should have a submit method', () => {
-      expect(typeof JsonEditor.methods.submit).toBe('function');
-    });
-
-    it('should have a setErrorMessage method', () => {
-      expect(typeof JsonEditor.methods.setErrorMessage).toBe('function');
-    });
-
-    it('should have a clearErrorMessage method', () => {
-      expect(typeof JsonEditor.methods.clearErrorMessage).toBe('function');
+    it('should have required props', () => {
+      const wrapper = mount(JsonEditor, {
+        props: {
+          schema: mockSchema,
+          modelValue: {}
+        }
+      });
+      expect(wrapper.vm).toBeTruthy();
     });
   });
 
-  describe('data', () => {
-    // Evaluate the results of functions in
-    // the raw component options
-    it('should set the correct default data', () => {
-      expect(typeof JsonEditor.data).toBe('function');
-      const defaultData = JsonEditor.data();
+  describe('exposed methods', () => {
+    it('should expose reset method', () => {
+      const wrapper = mount(JsonEditor, {
+        props: {
+          schema: mockSchema,
+          modelValue: { name: 'test' }
+        }
+      });
 
-      expect(Object.keys(defaultData.default).length).toBe(0);
-      // expect(defaultData.fields.length).toBe(0);
-      expect(defaultData.error).toBe(null);
+      const vm = wrapper.vm;
+      expect(typeof vm.reset).toBe('function');
+    });
+
+    it('should expose input method', () => {
+      const wrapper = mount(JsonEditor, {
+        props: {
+          schema: mockSchema,
+          modelValue: {}
+        }
+      });
+
+      const vm = wrapper.vm;
+      expect(typeof vm.input).toBe('function');
+    });
+
+    it('should expose validate method', () => {
+      const wrapper = mount(JsonEditor, {
+        props: {
+          schema: mockSchema,
+          modelValue: {}
+        }
+      });
+
+      const vm = wrapper.vm;
+      expect(typeof vm.validate).toBe('function');
+    });
+
+    it('should expose setErrorMessage method', () => {
+      const wrapper = mount(JsonEditor, {
+        props: {
+          schema: mockSchema,
+          modelValue: {}
+        }
+      });
+
+      const vm = wrapper.vm;
+      expect(typeof vm.setErrorMessage).toBe('function');
+    });
+
+    it('should expose clearErrorMessage method', () => {
+      const wrapper = mount(JsonEditor, {
+        props: {
+          schema: mockSchema,
+          modelValue: {}
+        }
+      });
+
+      const vm = wrapper.vm;
+      expect(typeof vm.clearErrorMessage).toBe('function');
+    });
+
+    it('should expose form method', () => {
+      const wrapper = mount(JsonEditor, {
+        props: {
+          schema: mockSchema,
+          modelValue: {}
+        }
+      });
+
+      const vm = wrapper.vm;
+      expect(typeof vm.form).toBe('function');
+    });
+
+    it('should expose getFields method', () => {
+      const wrapper = mount(JsonEditor, {
+        props: {
+          schema: mockSchema,
+          modelValue: {}
+        }
+      });
+
+      const vm = wrapper.vm;
+      expect(typeof vm.getFields).toBe('function');
     });
   });
 
+  describe('initial state', () => {
+    it('should initialize with empty model when no modelValue provided', () => {
+      const wrapper = mount(JsonEditor, {
+        props: {
+          schema: mockSchema
+        }
+      });
 
+      const vm = wrapper.vm;
+      const fields = vm.getFields();
+      expect(fields).toBeDefined();
+    });
+  });
 });

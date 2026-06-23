@@ -1,43 +1,50 @@
 <template>
-<el-row>
-  <el-col :span="12">
-    <el-card class="form">
-      <json-editor ref="JsonEditor" :schema="schema" v-model="model">
-        <el-button type="primary" @click="submit">Subscribe</el-button>
-        <el-button type="reset" @click="reset">Reset</el-button>
-      </json-editor>
-    </el-card>
-  </el-col>
-  <el-col :span="12">
-    <el-card class="box-card">
-      <div slot="header" class="clearfix">
-        <span>Model</span>
-      </div>
-      <pre class="json">{{ jsonString }}</pre>
-    </el-card>
-    <br />
-    <el-card class="box-card">
-      <div slot="header" class="clearfix">
-        <span>How to use</span>
-      </div>
-      <div class="json">
-        <p>GitHub: <a href="https://github.com/yourtion/vue-json-ui-editor" target="_blank">vue-json-ui-editor</a></p>
-        <p>NPM: <a href="https://www.npmjs.com/package/vue-json-ui-editor" target="_blank">json-editor</a></p>
-      </div>
-    </el-card>
-  </el-col>
-</el-row>
+  <el-row>
+    <el-col :span="12">
+      <el-card class="form">
+        <json-editor ref="jsonEditorRef" :schema="schema" v-model="model">
+          <el-button type="primary" @click="submit">Subscribe</el-button>
+          <el-button type="reset" @click="reset">Reset</el-button>
+        </json-editor>
+      </el-card>
+    </el-col>
+    <el-col :span="12">
+      <el-card class="box-card">
+        <template #header>
+          <div class="clearfix">
+            <span>Model</span>
+          </div>
+        </template>
+        <pre class="json">{{ jsonString }}</pre>
+      </el-card>
+      <br />
+      <el-card class="box-card">
+        <template #header>
+          <div class="clearfix">
+            <span>How to use</span>
+          </div>
+        </template>
+        <div class="json">
+          <p>GitHub: <a href="https://github.com/yourtion/vue-json-ui-editor" target="_blank">vue-json-ui-editor</a></p>
+          <p>NPM: <a href="https://www.npmjs.com/package/vue-json-ui-editor" target="_blank">json-editor</a></p>
+        </div>
+      </el-card>
+    </el-col>
+  </el-row>
 </template>
 
-<script>
+<script setup>
+import { ref, computed } from 'vue';
 import JsonEditor from '../../src/JsonEditor.vue';
-import { Option } from 'element-ui';
+import { ElOption as Option } from 'element-plus';
+import newsletterSchema from '../schema/newsletter.json';
 
+// Configure JsonEditor components
 JsonEditor.setComponent('form', 'el-form', ({ vm }) => {
   // vm is the JsonEditor VM
 
   const labelWidth = '120px';
-  const model = vm.data;
+  const model = vm.model;
   const rules = {};
 
   function parseField(fields) {
@@ -107,43 +114,40 @@ JsonEditor.setComponent('error', 'el-alert', ({ vm }) => ({
   title: vm.error,
 }));
 
-import newsletterSchema from '../schema/newsletter.json';
-
-export default {
-  data: () => ({
-    schema: newsletterSchema,
-    model: {
-      name: 'Yourtion',
-      sub: {
-        sEmail: 'yourtion@gmail.com',
-      },
-    },
-  }),
-  computed: {
-    jsonString() {
-      return JSON.stringify(this.model, null, 2).trim();
-    },
+// Reactive data
+const schema = ref(newsletterSchema);
+const model = ref({
+  name: 'Yourtion',
+  sub: {
+    sEmail: 'yourtion@gmail.com',
   },
-  methods: {
-    submit(_e) {
-      this.$refs.JsonEditor.form().validate(valid => {
-        if (valid) {
-          // this.model contains the valid data according your JSON Schema.
-          // You can submit your model to the server here
+});
 
+// Template ref
+const jsonEditorRef = ref();
 
-          this.$refs.JsonEditor.clearErrorMessage();
-        } else {
-          this.$refs.JsonEditor.setErrorMessage('Please fill out the required fields');
-          return false;
-        }
-      });
-    },
-    reset() {
-      this.$refs.JsonEditor.reset();
-    },
-  },
-  components: { JsonEditor },
+// Computed property
+const jsonString = computed(() => {
+  return JSON.stringify(model.value, null, 2).trim();
+});
+
+// Methods
+const submit = (_e) => {
+  jsonEditorRef.value.form().validate(valid => {
+    if (valid) {
+      // model.value contains the valid data according your JSON Schema.
+      // You can submit your model to the server here
+
+      jsonEditorRef.value.clearErrorMessage();
+    } else {
+      jsonEditorRef.value.setErrorMessage('Please fill out the required fields');
+      return false;
+    }
+  });
+};
+
+const reset = () => {
+  jsonEditorRef.value.reset();
 };
 </script>
 

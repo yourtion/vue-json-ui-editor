@@ -1,471 +1,706 @@
 <script lang="ts">
+import {
+  defineComponent,
+  h,
+  reactive,
+  ref,
+  watch,
+  onMounted,
+  resolveComponent,
+  type Component,
+} from "vue";
 import { loadFields } from "./parser";
-import { initChild, getChild, setVal, deepClone } from "./utils";
-import type { JsonSchema, FormField, Fields, VueInstance } from "./types";
+import { initChild, getChild, deepClone } from "./utils";
+import type { JsonSchema, FormField, Fields, FormFieldItem } from "./types";
+
+type RecordAny = Record<string, any>;
 
 interface ComponentOption {
   native?: boolean;
   type?: string;
   label?: string;
+  disableWrappingLabel?: boolean;
+  [key: string]: unknown;
 }
 
 interface ComponentConfig {
-  component: string;
-  option: ComponentOption;
+  component: string | Component;
+  option: ComponentOption | ((ctx: OptionContext) => RecordAny);
 }
 
-const option: ComponentOption = { native: true };
-const components: Record<string, ComponentConfig> = {
-  title: { component: "h1", option },
-  description: { component: "p", option },
-  error: { component: "div", option },
-  form: { component: "form", option },
-  file: { component: "input", option },
-  label: { component: "label", option },
-  input: { component: "input", option },
-  radio: { component: "input", option },
-  select: { component: "select", option },
-  option: { component: "option", option },
-  button: {
-    component: "button",
-    option: {
-      ...option,
-      type: "submit",
-      label: "Submit",
-    },
-  },
-  checkbox: { component: "input", option },
-  textarea: { component: "textarea", option },
-  radiogroup: { component: "div", option },
-  checkboxgroup: { component: "div", option },
-};
-const defaultInput: ComponentConfig = { component: "input", option };
-const defaultGroup: ComponentConfig = { component: "div", option };
+interface OptionContext {
+  vm: VmContext;
+  field: FormField;
+  item: Record<string, unknown>;
+}
 
-interface JsonEditorData {
-  default: Record<string, unknown>;
+interface VmContext {
+  model: RecordAny;
   fields: Fields;
   error: string | null;
-  data: Record<string, unknown>;
 }
+
+const nativeOption: ComponentOption = { native: true };
+const components: Record<string, ComponentConfig> = {
+  title: { component: "h1", option: nativeOption },
+  description: { component: "p", option: nativeOption },
+  error: { component: "div", option: nativeOption },
+  form: { component: "form", option: nativeOption },
+  file: { component: "input", option: nativeOption },
+  label: { component: "label", option: nativeOption },
+  input: { component: "input", option: nativeOption },
+  radio: { component: "input", option: nativeOption },
+  select: { component: "select", option: nativeOption },
+  option: { component: "option", option: nativeOption },
+  button: {
+    component: "button",
+    option: { ...nativeOption, type: "submit", label: "Submit" },
+  },
+  checkbox: { component: "input", option: nativeOption },
+  textarea: { component: "textarea", option: nativeOption },
+  radiogroup: { component: "div", option: nativeOption },
+  checkboxgroup: { component: "div", option: nativeOption },
+};
+const defaultInput: ComponentConfig = { component: "input", option: nativeOption };
+const defaultGroup: ComponentConfig = { component: "div", option: nativeOption };
 
 /**
  * Edit JSON in UI form with JSON Schema and Vue.js `<json-editor>` component.
  *
+ * Vue 3 port of the original Vue 2 Options API implementation. Preserves the
+ * full public API: `setComponent(type, component, optionOrCallback)` (incl.
+ * callback options that receive `{ vm, field, item }`), `vm.model/fields/error`
+ * exposure, the two-pass render (createForm -> createNode), per-type branches
+ * (text/textarea/radio/checkbox/select), label wrapping, and slots.
+ *
  * @author Yourtion
  * @license MIT
  */
-export default {
+const JsonEditor = defineComponent({
   name: "JsonEditor",
   props: {
     /**
      * The JSON Schema object. Use the `v-if` directive to load asynchronous schema.
      */
-    schema: { type: Object, required: true },
+    schema: { type: Object as () => JsonSchema, required: true },
     /**
-     * Use this directive to create two-way data bindings with the component. It automatically picks the correct way to update the element based on the input type.
+     * v-model binding for the form data object.
      * @model
      * @default {}
      */
-    value: { type: Object, default: () => ({}) },
+    modelValue: { type: Object as () => RecordAny, default: () => ({}) },
     /**
      * This property indicates whether the value of the control can be automatically completed by the browser. Possible values are: `off` and `on`.
      */
-    autoComplete: { type: String },
+    autoComplete: { type: String, default: undefined },
     /**
      * This Boolean attribute indicates that the form is not to be validated when submitted.
      */
-    noValidate: { type: Boolean },
+    noValidate: { type: Boolean, default: false },
     /**
      * Define the inputs wrapping class. Leave `undefined` to disable input wrapping.
      */
-    inputWrappingClass: { type: String },
+    inputWrappingClass: { type: String, default: undefined },
   },
-  data(): JsonEditorData {
-    return {
-      default: {},
-      fields: {},
-      error: null,
-      data: {},
+  emits: ["update:modelValue", "change", "submit", "invalid"],
+  setup(props, { emit, slots, expose }) {
+    // --- reactive state -------------------------------------------------
+    // `model` is a reactive proxy over the incoming modelValue object, which
+    // preserves the Vue 2 same-reference semantics: mutating `model` reflects
+    // onto the parent's bound object directly. `defaultModel` is the snapshot
+    // used by reset().
+    const model = reactive(props.modelValue || {}) as RecordAny;
+    const defaultModel = deepClone(props.modelValue || {}) as RecordAny;
+    let fields: Fields = {};
+    const error = ref<string | null>(null);
+
+    // `formRef` holds the rendered <form> component instance (or DOM node when
+    // the default native <form> is used). Exposed via form() so callers can
+    // reach the real element-plus el-form instance: jsonEditor.form().validate(cb).
+    const formRef = ref<any>(null);
+    // Per-input refs keyed by field name path, for the input() accessor.
+    const inputRefs: Record<string, any> = {};
+
+    // --- parser integration --------------------------------------------
+    const reload = () => {
+      fields = {};
+      if (!props.schema) return;
+      loadFields(model, deepClone(props.schema) as JsonSchema, fields);
     };
-  },
-  created(): void {
-    loadFields(this as VueInstance, deepClone(this.schema) as JsonSchema);
-    this.default = deepClone(this.value);
-    this.data = this.value;
-  },
-  render(createElement: Function) {
-    // Handle null or undefined schema gracefully
-    if (!this.schema) {
-      console.warn("JsonEditor: schema is required but was not provided");
-      return createElement("div", "Invalid schema: schema is required");
-    }
-
-    const nodes = [];
-    if (this.schema.title) {
-      nodes.push(createElement(components.title.component, this.schema.title));
-    }
-    if (this.schema.description) {
-      nodes.push(createElement(components.description.component, this.schema.description));
-    }
-    if (this.error) {
-      const errorOptions = (this as any).elementOptions(components.error);
-      const errorNodes = [];
-      if (components.error.option.native) {
-        errorNodes.push(this.error);
-      }
-      nodes.push(createElement(components.error.component, errorOptions, errorNodes));
-    }
-    const allFormNodes = [];
-    const formNode = {
-      root: {},
-    };
-    const createForm = (fields: any, sub?: any) => {
-      let node;
-      if (sub) {
-        node = setVal(formNode, sub.pop(), {});
-      } else {
-        node = formNode.root;
-      }
-
-      if (Object.keys(fields).length) {
-        Object.keys(fields).forEach((key) => {
-          const formNodes = [];
-          if (key.indexOf("$") === 0) return;
-          const field = fields[key];
-          if (field.$sub) {
-            return createForm(field, sub ? [...sub, key] : [key]);
-          }
-          const fieldName = field.name;
-
-          const fieldValue = getChild(this.value, fieldName.split("."));
-          if (!field.value) {
-            field.value = fieldValue;
-          }
-          const customComponent = field.component
-            ? { component: field.component, option: {} }
-            : undefined;
-          // eslint-disable-next-line
-          const element = field.component
-            ? customComponent!
-            : Object.hasOwn(field, "items") && field.type !== "select"
-              ? components[`${field.type}group`] || defaultGroup
-              : components[field.type] || defaultInput;
-          const fieldOptions = this.elementOptions(element, field, field);
-          const children = [];
-
-          const input = {
-            ref: fieldName,
-            domProps: {
-              value: fieldValue,
-            },
-            on: {
-              input: (event: any) => {
-                let value;
-                if (event && event.target) {
-                  // For checkbox inputs, use checked property instead of value
-                  if (event.target.type === 'checkbox') {
-                    value = event.target.checked;
-                  } else {
-                    value = event.target.value;
-                  }
-                } else {
-                  value = event;
-                }
-                const ns = fieldName.split(".");
-                const n = ns.pop();
-                const ret = ns.length > 0 ? initChild(this.data, ns) : this.data;
-                this.$set(ret, n, value);
-                /**
-                 * Fired synchronously when the value of an element is changed.
-                 */
-                this.$emit("input", this.data);
-              },
-              change: this.changed,
-            },
-            ...fieldOptions,
-          };
-          delete field.value;
-          switch (field.type) {
-            case "text":
-              if (Object.hasOwn(field, "placeholder")) {
-                if (!(input as any).attrs) (input as any).attrs = {};
-                (input as any).attrs.placeholder = field.placeholder;
-              }
-              break;
-            case "textarea":
-              if ((element.option as any).native) {
-                (input.domProps as any).innerHTML = fieldValue;
-              }
-              break;
-            case "radio":
-            case "checkbox":
-              if (Object.hasOwn(field, "items")) {
-                field.items.forEach((item: any) => {
-                  const itemOptions = this.elementOptions(components[field.type], item, item, item);
-                  children.push(
-                    createElement(components[field.type].component, itemOptions, item.label),
-                  );
-                });
-              }
-              break;
-            case "select":
-              if (!field.required) {
-                children.push(createElement(components.option.component));
-              }
-              field.items.forEach((option: any) => {
-                const optionOptions = this.elementOptions(
-                  components.option,
-                  {
-                    value: option.value,
-                  },
-                  field,
-                );
-                children.push(
-                  createElement(
-                    components.option.component,
-                    {
-                      domProps: {
-                        value: option.value,
-                      },
-                      ...optionOptions,
-                    },
-                    option.label,
-                  ),
-                );
-              });
-              break;
-          }
-          const inputElement = createElement(element.component, input, children);
-
-          const formControlsNodes = [];
-          if (field.label && !(option as any).disableWrappingLabel) {
-            const labelOptions = this.elementOptions(components.label, field, field);
-            const labelNodes = [];
-            if (components.label.option.native) {
-              labelNodes.push(
-                createElement(
-                  "span",
-                  {
-                    attrs: {
-                      "data-required-field": field.required ? "true" : "false",
-                    },
-                  },
-                  field.label,
-                ),
-              );
-            }
-            labelNodes.push(inputElement);
-            if (field.description) {
-              labelNodes.push(createElement("br"));
-              labelNodes.push(createElement("small", field.description));
-            }
-            formControlsNodes.push(
-              createElement(components.label.component, labelOptions, labelNodes),
-            );
-          } else {
-            formControlsNodes.push(inputElement);
-            if (field.description) {
-              formControlsNodes.push(createElement("br"));
-              formControlsNodes.push(createElement("small", field.description));
-            }
-          }
-          if (this.inputWrappingClass) {
-            formNodes.push(
-              createElement(
-                "div",
-                {
-                  class: this.inputWrappingClass,
-                },
-                formControlsNodes,
-              ),
-            );
-          } else {
-            formControlsNodes.forEach((node) => formNodes.push(node));
-          }
-          (node as any)[key] = formNodes[0];
-        });
-      }
-    };
-    createForm(this.fields);
-
-    const createNode = (fields: any, sub?: any) => {
-      const nodes = [];
-      const subName = sub && sub.pop();
-      if (fields.$title) {
-        nodes.push(
-          createElement(
-            "div",
-            {
-              class: "sub-title",
-            },
-            fields.$title,
-          ),
-        );
-      }
-      Object.keys(fields).forEach((key) => {
-        if (key.indexOf("$") === 0) return;
-        const field = fields[key];
-        if (field.$sub) {
-          const node = createNode(field, sub ? [...sub, key] : [key]);
-          nodes.push(
-            createElement(
-              "div",
-              {
-                class: "sub",
-              },
-              node,
-            ),
-          );
-        } else if (subName) {
-          nodes.push((getChild(formNode, subName.split(".")) as any)[key]);
-        } else {
-          nodes.push((formNode.root as any)[key]);
-        }
-      });
-      return nodes;
-    };
-    const formNodes = createNode(this.fields);
-    allFormNodes.push(formNodes);
-
-    const labelOptions = (this as any).elementOptions(components.label);
-    const button = Object.hasOwn(this.$slots, "default")
-      ? { component: this.$slots.default, option }
-      : components.button;
-    if (button.component instanceof Array) {
-      allFormNodes.push(createElement(components.label.component, labelOptions, button.component));
-    } else {
-      const buttonOptions = (this as any).elementOptions(button);
-      const buttonElement = createElement(button.component, buttonOptions, button.option.label);
-      allFormNodes.push(createElement(components.label.component, labelOptions, [buttonElement]));
-    }
-    const formOptions = (this as any).elementOptions(components.form, {
-      autocomplete: this.autoComplete,
-      novalidate: this.noValidate,
-    });
-    nodes.push(
-      createElement(
-        components.form.component,
-        {
-          ref: "__form",
-          on: {
-            submit: (event: Event) => {
-              event.stopPropagation();
-              this.submit(event);
-            },
-            invalid: (this as any).invalid,
-          },
-          ...(formOptions as any),
-        },
-        allFormNodes,
-      ),
+    reload();
+    watch(
+      () => props.schema,
+      () => reload(),
+      { deep: true },
     );
-    return createElement("div", nodes);
-  },
-  mounted(): void {
-    this.reset();
-  },
-  /**
-   * Set component configuration
-   */
-  setComponent(type: string, component: string, option: ComponentOption = {}): void {
-    components[type] = { component, option };
-  },
-  methods: {
-    /**
-     * @private
-     */
-    optionValue(field: FormField, target: unknown, item: Record<string, unknown> = {}): unknown {
-      return typeof target === "function" ? target({ vm: this, field, item }) : target;
-    },
-    /**
-     * @private
-     */
-    elementOptions(
+
+    // Sync incoming modelValue changes into our reactive model. Guard against
+    // echoing our own emissions back (which would cause a watch loop).
+    let emitting = false;
+    watch(
+      () => props.modelValue,
+      (nv) => {
+        if (emitting || nv === undefined || nv === null) return;
+        if (nv === model) return;
+        Object.keys(model).forEach((k) => delete model[k]);
+        Object.assign(model, deepClone(nv));
+        reload();
+      },
+      { deep: true },
+    );
+
+    // --- vm context exposed to option callbacks -------------------------
+    const vm: VmContext = {
+      // `model` is the same proxy the parent bound, so callbacks handing it
+      // to el-form's `model` prop bind the live object.
+      model,
+      // getter keeps `fields` current across schema reloads
+      get fields() {
+        return fields;
+      },
+      get error() {
+        return error.value;
+      },
+      set error(v: string | null) {
+        error.value = v;
+      },
+    };
+
+    // --- optionValue / elementOptions (ported from master methods) ------
+    const optionValue = (field: FormField, target: unknown, item: RecordAny = {}): unknown => {
+      return typeof target === "function"
+        ? (target as (ctx: OptionContext) => RecordAny)({ vm, field, item })
+        : target;
+    };
+
+    // Produces the h()-data object fragment for an element. In Vue 3 there is
+    // no domProps/attrs split like Vue 2; everything flattens onto the data
+    // object and Vue's fallthrough handles native attrs vs component props.
+    const elementOptions = (
       element: ComponentConfig,
-      extendingOptions: Record<string, unknown> = {},
+      extendingOptions: RecordAny = {},
       field: FormField = {} as FormField,
-      item: Record<string, unknown> = {},
-    ): Record<string, Record<string, unknown>> {
-      const attrName = element.option.native ? "attrs" : "props";
+      item: RecordAny = {},
+    ): RecordAny => {
       const elementProps =
         typeof element.option === "function"
           ? element.option
           : { ...element.option, native: undefined };
-      const options = this.optionValue(field, elementProps, item);
-      return { [attrName]: { ...extendingOptions, ...(options as any) } };
-    },
-    /**
-     * @private
-     */
-    changed(e: Event): void {
-      /**
-       * Fired when a change to the element's value is committed by the user.
-       */
-      this.$emit("change", e);
-    },
-    /**
-     * Get a form input reference
-     */
-    input(name: string): HTMLElement {
-      if (!this.$refs[name]) {
+      const options = optionValue(field, elementProps, item) as RecordAny;
+      return { ...extendingOptions, ...options };
+    };
+
+    // Whether an element is a native HTML tag (e.g. "input", "select") or a
+    // registered component (e.g. ElInput, ElSelect). Mirrors master's logic:
+    // `option.native` defaults to false when undefined — so a registered
+    // component without an explicit option (e.g. setComponent('option', ElOption))
+    // is treated as non-native and its children must go through the default slot.
+    // Only the built-in `components` map sets native: true explicitly.
+    const isNativeElement = (element: ComponentConfig): boolean => {
+      if (typeof element.option === "function") return false;
+      return element.option.native === true;
+    };
+
+    // Whether an element is effectively native: either explicitly flagged
+    // native in its option, or registered as a known HTML tag string.
+    const isEffectivelyNative = (element: ComponentConfig): boolean => {
+      if (typeof element.option === "function") return false;
+      if (element.option.native === true) return true;
+      return typeof element.component === "string" && NATIVE_HTML_TAGS.has(element.component);
+    };
+
+    // Wrap a children VNode array for h(): native elements get the array
+    // as-is; components receive children as a function (the form element-plus
+    // and other Vue 3 UI libs expect for render-function usage — a slots
+    // object does not always work because their internals resolve the default
+    // slot via normalizedChildren which prefers a raw function child).
+    const wrapChildren = (element: ComponentConfig, children: any[]): any => {
+      if (children.length === 0) return undefined;
+      if (isEffectivelyNative(element)) return children;
+      return () => children;
+    };
+
+    // Wrap a single child (string/vnode) for h(): same native vs component
+    // distinction as wrapChildren, but for a scalar child (e.g. option label).
+    const wrapChild = (element: ComponentConfig, child: any): any => {
+      if (child === undefined || child === null) return undefined;
+      if (isEffectivelyNative(element)) return child;
+      return () => child;
+    };
+
+    // Known native HTML element tag names. When a registered component is a
+    // string that matches one of these, we pass it directly to h() as a native
+    // tag rather than trying resolveComponent() (which would emit a spurious
+    // "Failed to resolve component" warning for tags like h2/small that
+    // setComponent callers commonly use).
+    const NATIVE_HTML_TAGS = new Set([
+      "a",
+      "abbr",
+      "address",
+      "area",
+      "article",
+      "aside",
+      "audio",
+      "b",
+      "base",
+      "bdi",
+      "bdo",
+      "blockquote",
+      "body",
+      "br",
+      "button",
+      "canvas",
+      "caption",
+      "cite",
+      "code",
+      "col",
+      "colgroup",
+      "data",
+      "datalist",
+      "dd",
+      "del",
+      "details",
+      "dfn",
+      "dialog",
+      "div",
+      "dl",
+      "dt",
+      "em",
+      "embed",
+      "fieldset",
+      "figcaption",
+      "figure",
+      "footer",
+      "form",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "head",
+      "header",
+      "hgroup",
+      "hr",
+      "html",
+      "i",
+      "iframe",
+      "img",
+      "input",
+      "ins",
+      "kbd",
+      "label",
+      "legend",
+      "li",
+      "link",
+      "main",
+      "map",
+      "mark",
+      "menu",
+      "meta",
+      "meter",
+      "nav",
+      "noscript",
+      "object",
+      "ol",
+      "optgroup",
+      "option",
+      "output",
+      "p",
+      "param",
+      "picture",
+      "pre",
+      "progress",
+      "q",
+      "rp",
+      "rt",
+      "ruby",
+      "s",
+      "samp",
+      "script",
+      "section",
+      "select",
+      "slot",
+      "small",
+      "source",
+      "span",
+      "strong",
+      "style",
+      "sub",
+      "summary",
+      "sup",
+      "table",
+      "tbody",
+      "td",
+      "template",
+      "textarea",
+      "tfoot",
+      "th",
+      "thead",
+      "time",
+      "title",
+      "tr",
+      "track",
+      "u",
+      "ul",
+      "var",
+      "video",
+      "wbr",
+    ]);
+
+    // Resolve an element's component for h(). In Vue 2, createElement('el-form')
+    // implicitly resolved globally-registered components from a string id. In
+    // Vue 3 this is a breaking change: h('el-form') treats the string as a
+    // native HTML tag. To preserve the master API where setComponent is called
+    // with string names like 'el-form' / 'el-input', we resolve non-native
+    // string components via resolveComponent() at render time — unless the
+    // string is a known native HTML tag (h2, small, ...), in which case it is
+    // passed through directly.
+    const resolveComp = (element: ComponentConfig): string | Component => {
+      const comp = element.component;
+      if (typeof comp !== "string") return comp;
+      if (isNativeElement(element)) return comp;
+      if (NATIVE_HTML_TAGS.has(comp)) return comp;
+      return resolveComponent(comp);
+    };
+
+    // --- helper used by input handlers ---------------------------------
+    const writeField = (fieldName: string, value: unknown) => {
+      const ns = fieldName.split(".");
+      const ret = ns.length > 1 ? (initChild(model, ns.slice(0, -1)) as RecordAny) : model;
+      const key = ns[ns.length - 1];
+      ret[key] = value;
+      emitting = true;
+      emit("update:modelValue", model);
+      emitting = false;
+    };
+
+    // --- render: per-field input vnode ---------------------------------
+    const renderInput = (field: FormField, fieldName: string) => {
+      const fieldValue = getChild(model, fieldName.split("."));
+      if (!field.value) {
+        field.value = fieldValue;
+      }
+
+      const customComponent = field.component
+        ? ({ component: field.component, option: {} } as ComponentConfig)
+        : undefined;
+      const element: ComponentConfig = field.component
+        ? customComponent!
+        : Object.prototype.hasOwnProperty.call(field, "items") && field.type !== "select"
+          ? components[`${field.type}group`] || defaultGroup
+          : components[field.type] || defaultInput;
+
+      const children: any[] = [];
+      const baseInputData: RecordAny = {
+        ref: (el: any) => {
+          if (el) inputRefs[fieldName] = el;
+        },
+        value: fieldValue,
+        onInput: (event: any) => {
+          let value: unknown;
+          if (event && event.target) {
+            value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
+          } else {
+            value = event;
+          }
+          writeField(fieldName, value);
+        },
+        onChange: (e: Event) => {
+          emit("change", e);
+        },
+        ...elementOptions(element, {}, field, {}),
+      };
+
+      switch (field.type) {
+        case "text":
+          if (Object.prototype.hasOwnProperty.call(field, "placeholder")) {
+            baseInputData.placeholder = field.placeholder;
+          }
+          break;
+        case "textarea":
+          if (isNativeElement(element)) {
+            baseInputData.innerHTML = fieldValue;
+          }
+          break;
+        case "radio":
+        case "checkbox":
+          if (Object.prototype.hasOwnProperty.call(field, "items")) {
+            const items = field.items as FormFieldItem[];
+            items.forEach((item: FormFieldItem) => {
+              const itemRecord = item as unknown as RecordAny;
+              const itemData = elementOptions(
+                components[field.type],
+                itemRecord,
+                field,
+                itemRecord,
+              );
+              children.push(
+                h(
+                  resolveComp(components[field.type]),
+                  itemData,
+                  wrapChild(components[field.type], item.label),
+                ),
+              );
+            });
+          }
+          break;
+        case "select":
+          if (!field.required) {
+            children.push(h(resolveComp(components.option)));
+          }
+          (field.items as FormFieldItem[]).forEach((opt: FormFieldItem) => {
+            const optData = elementOptions(components.option, { value: opt.value }, field, {});
+            children.push(
+              h(
+                resolveComp(components.option),
+                { value: opt.value, ...optData },
+                wrapChild(components.option, opt.label),
+              ),
+            );
+          });
+          break;
+        default:
+          break;
+      }
+
+      const inputElement = h(resolveComp(element), baseInputData, wrapChildren(element, children));
+
+      // --- label / description wrapping --------------------------------
+      const formControlsNodes: any[] = [];
+      const wrapLabel = field.label && !nativeOption.disableWrappingLabel;
+      if (wrapLabel) {
+        const labelData = elementOptions(components.label, {}, field, {});
+        const labelNodes: any[] = [];
+        if (isNativeElement(components.label)) {
+          labelNodes.push(
+            h("span", { "data-required-field": field.required ? "true" : "false" }, field.label),
+          );
+        }
+        labelNodes.push(inputElement);
+        if (field.description) {
+          labelNodes.push(h("br"));
+          labelNodes.push(h("small", field.description));
+        }
+        formControlsNodes.push(
+          h(resolveComp(components.label), labelData, wrapChildren(components.label, labelNodes)),
+        );
+      } else {
+        formControlsNodes.push(inputElement);
+        if (field.description) {
+          formControlsNodes.push(h("br"));
+          formControlsNodes.push(h("small", field.description));
+        }
+      }
+      // inputWrappingClass: wrap all controls for this field in a <div class=...>.
+      // Matches master's behavior (master pushes into formNodes either wrapped
+      // or flat). When wrapping, the wrapped div becomes the single stashed node.
+      if (props.inputWrappingClass) {
+        return [h("div", { class: props.inputWrappingClass }, formControlsNodes)];
+      }
+      return formControlsNodes;
+    };
+
+    // --- render: two-pass traversal (createForm -> createNode) ---------
+    // Pass 1: render each field into a vnode and stash it, keyed by the full
+    // dotted namespace path, into `stash`. Recurse through `$sub` containers.
+    // Pass 2: walk the same field tree in DOM order, pulling vnodes out of
+    // `stash` and wrapping nested objects with sub-title/sub containers.
+    // (master uses a nested formNode + setVal/getChild; we flatten to a dotted
+    // key map which is easier to reason about and avoids path-consumption bugs.)
+    const renderFormTree = () => {
+      const stash: Record<string, any> = {};
+
+      const createForm = (fieldsObj: Fields, prefix: string) => {
+        Object.keys(fieldsObj).forEach((key) => {
+          if (key.indexOf("$") === 0) return;
+          const field = fieldsObj[key] as FormField;
+          if (field && field.$sub) {
+            createForm(field as unknown as Fields, prefix ? `${prefix}.${key}` : key);
+            return;
+          }
+          if (!field || !field.name) return;
+          const controls = renderInput(field, field.name);
+          stash[field.name] = controls[0];
+        });
+      };
+      createForm(fields, "");
+
+      const createNode = (fieldsObj: Fields): any[] => {
+        const nodes: any[] = [];
+        if ((fieldsObj as RecordAny).$title) {
+          nodes.push(h("div", { class: "sub-title" }, (fieldsObj as RecordAny).$title));
+        }
+        Object.keys(fieldsObj).forEach((key) => {
+          if (key.indexOf("$") === 0) return;
+          const field = fieldsObj[key] as FormField;
+          if (field && field.$sub) {
+            const child = createNode(field as unknown as Fields);
+            nodes.push(h("div", { class: "sub" }, child));
+          } else if (field && field.name && stash[field.name]) {
+            nodes.push(stash[field.name]);
+          }
+        });
+        return nodes;
+      };
+
+      return createNode(fields);
+    };
+
+    // --- top-level render function -------------------------------------
+    const render = () => {
+      // Schema guard (master parity)
+      if (!props.schema) {
+        console.warn("JsonEditor: schema is required but was not provided");
+        return h("div", "Invalid schema: schema is required");
+      }
+
+      const nodes: any[] = [];
+      if (props.schema.title) {
+        const titleData = elementOptions(components.title, {});
+        nodes.push(h(resolveComp(components.title), titleData, props.schema.title));
+      }
+      if (props.schema.description) {
+        const descData = elementOptions(components.description, {});
+        nodes.push(h(resolveComp(components.description), descData, props.schema.description));
+      }
+      if (error.value) {
+        const errorData = elementOptions(components.error, {});
+        // When error is a native element (default <div>), the error text goes
+        // into children; when it's a registered component (e.g. ElAlert), the
+        // text is conveyed via a callback option prop (e.g. title: vm.error).
+        const isErrorNative = isNativeElement(components.error);
+        const errorChildren: any[] = isErrorNative ? [error.value] : [];
+        nodes.push(
+          h(resolveComp(components.error), errorData, isErrorNative ? errorChildren : undefined),
+        );
+      }
+
+      const allFormNodes: any[] = [];
+      allFormNodes.push(renderFormTree());
+
+      // --- submit button / slot --------------------------------------
+      const labelData = elementOptions(components.label, {});
+      const slotVnodes = slots.default ? slots.default() : null;
+      if (slotVnodes && slotVnodes.length) {
+        allFormNodes.push(
+          h(resolveComp(components.label), labelData, wrapChildren(components.label, slotVnodes)),
+        );
+      } else {
+        const buttonData = elementOptions(components.button, {});
+        const buttonElement = h(
+          resolveComp(components.button),
+          buttonData,
+          (components.button.option as ComponentOption).label,
+        );
+        allFormNodes.push(
+          h(
+            resolveComp(components.label),
+            labelData,
+            wrapChildren(components.label, [buttonElement]),
+          ),
+        );
+      }
+
+      const formData = elementOptions(components.form, {
+        autocomplete: props.autoComplete,
+        novalidate: props.noValidate,
+      });
+      nodes.push(
+        h(
+          resolveComp(components.form),
+          {
+            ref: formRef,
+            onSubmit: (event: Event) => {
+              event.stopPropagation();
+              if (checkValidity()) {
+                emit("submit", event);
+              }
+            },
+            onInvalid: (e: Event) => {
+              emit("invalid", e);
+            },
+            ...formData,
+          },
+          wrapChildren(components.form, allFormNodes),
+        ),
+      );
+      return h("div", nodes);
+    };
+
+    // --- exposed methods (master parity) -------------------------------
+    const input = (name: string): HTMLElement => {
+      if (!inputRefs[name]) {
         throw new Error(`Undefined input reference '${name}'`);
       }
-      return (this.$refs[name] as HTMLElement[])[0];
-    },
-    /**
-     * Get the form reference
-     */
-    form(): HTMLFormElement {
-      return this.$refs.__form as HTMLFormElement;
-    },
-    /**
-     * Checks whether the form has any constraints and whether it satisfies them. If the form fails its constraints, the browser fires a cancelable `invalid` event at the element, and then returns false.
-     */
-    checkValidity(): boolean {
-      return (this.$refs.__form as HTMLFormElement).checkValidity();
-    },
-    /**
-     * @private
-     */
-    invalid(e: Event): void {
-      /**
-       * Fired when a submittable element has been checked and doesn't satisfy its constraints. The validity of submittable elements is checked before submitting their owner form, or after the `checkValidity()` of the element or its owner form is called.
-       */
-      this.$emit("invalid", e);
-    },
-    /**
-     * Reset the value of all elements of the parent form.
-     */
-    reset(): void {
-      // 重置data为default的深拷贝
-      this.data = deepClone(this.default);
-      // 触发input事件通知父组件数据已重置
-      this.$emit("input", this.data);
-    },
-    /**
-     * Send the content of the form to the server
-     */
-    submit(event: Event): void {
-      if (this.checkValidity()) {
-        /**
-         * Fired when a form is submitted
-         */
-        this.$emit("submit", event);
+      return inputRefs[name];
+    };
+    const form = () => formRef.value;
+    const checkValidity = (): boolean => {
+      const el = formRef.value;
+      if (el && typeof el.checkValidity === "function") {
+        return el.checkValidity();
       }
-    },
-    /**
-     * Set a message error.
-     */
-    setErrorMessage(message: string): void {
-      this.error = message;
-    },
-    /**
-     * clear the message error.
-     */
-    clearErrorMessage(): void {
-      this.error = null;
-    },
+      return true;
+    };
+    const reset = () => {
+      Object.keys(model).forEach((k) => delete model[k]);
+      Object.assign(model, deepClone(defaultModel));
+      reload();
+      emitting = true;
+      emit("update:modelValue", model);
+      emitting = false;
+    };
+    const validate = async () => {
+      const el = formRef.value;
+      if (el && typeof el.validate === "function") {
+        return el.validate();
+      }
+      return { valid: checkValidity(), errors: [] as unknown[] };
+    };
+    const setErrorMessage = (message: string) => {
+      error.value = message;
+    };
+    const clearErrorMessage = () => {
+      error.value = null;
+    };
+    const getFields = () => fields;
+
+    // master runs reset() on mount to establish the initial data baseline
+    onMounted(() => {
+      reset();
+    });
+
+    expose({
+      reset,
+      form,
+      input,
+      checkValidity,
+      validate,
+      setErrorMessage,
+      clearErrorMessage,
+      getFields,
+      // expose vm so option callbacks and advanced consumers can reach it
+      get vm() {
+        return vm;
+      },
+    });
+
+    return render;
   },
+});
+
+export default JsonEditor;
+// Static API: register a component for a field/element type. Mirrors master's
+// setComponent(type, component, option?). `option` may be a plain object or a
+// factory callback ({ vm, field, item }) => propsObject.
+// Usage: (JsonEditor as any).setComponent('email', ElInput)
+//        (JsonEditor as any).setComponent('form', ElForm, ({ vm }) => ({ ... }))
+(JsonEditor as any).setComponent = (
+  type: string,
+  component: string | Component,
+  option: ComponentOption | ((ctx: OptionContext) => RecordAny) = {},
+) => {
+  components[type] = { component, option };
 };
 </script>

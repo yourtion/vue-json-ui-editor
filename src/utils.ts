@@ -1,75 +1,55 @@
-import type {
-  DeepCloneFunction,
-  GetChildFunction,
-  InitChildFunction,
-  SetValFunction,
-} from "./types";
+// src/utils.ts
+export type RecordAny = Record<string, any>;
 
-export const deepClone: DeepCloneFunction = <T>(obj: T): T => {
-  if (obj === undefined || obj === null) {
-    return obj;
-  }
-  if (typeof obj !== "object") {
-    return obj;
-  }
+export const deepClone = <T>(obj: T): T => {
+  if (obj === undefined || obj === null) return obj;
+  if (typeof obj !== "object") return obj;
   return JSON.parse(JSON.stringify(obj));
 };
 
 export function getExtendibleLeaf(
-  obj: Record<string, unknown>,
+  obj: RecordAny,
   n: string,
   initIt: boolean,
-): Record<string, unknown> | undefined {
+): RecordAny | undefined {
   const v: unknown = obj[n];
   if (v && typeof v === "object" && !Array.isArray(v)) {
-    return v as Record<string, unknown>;
+    return v as RecordAny;
   }
   if (initIt && v === undefined) {
-    return (obj[n] = {}) as Record<string, unknown>;
+    return (obj[n] = {}) as RecordAny;
   }
   return undefined;
 }
 
-export const getChild: GetChildFunction = (
-  data: Record<string, unknown>,
-  ns: string[],
-): unknown => {
-  // Handle null or undefined data
-  if (data === null || data === undefined) {
-    return undefined;
-  }
-
-  if (ns.length === 1) {
-    return data[ns[0]];
-  }
+export const getChild = (data: RecordAny, ns: string[]): unknown => {
+  if (data === null || data === undefined) return undefined;
+  if (ns.length === 1) return data[ns[0]];
   let obj: unknown = data[ns[0]];
   if (obj === undefined) return obj;
   let i = 1;
-  const end: number = ns.length - 1;
+  const end = ns.length - 1;
   for (; i < end; i++) {
-    obj = getExtendibleLeaf(obj as Record<string, unknown>, ns[i], false);
+    obj = getExtendibleLeaf(obj as RecordAny, ns[i], false);
     if (obj === undefined) return obj;
   }
-  return (obj as Record<string, unknown>)[ns[i]];
+  return (obj as RecordAny)[ns[i]];
 };
 
-export const initChild: InitChildFunction = (
-  data: Record<string, unknown>,
-  ns: string[],
-): Record<string, unknown> => {
+export const initChild = (data: RecordAny, ns: string[]): RecordAny => {
   if (ns.length === 1) {
-    const ret: Record<string, unknown> | undefined = getExtendibleLeaf(data, ns[0], true);
+    const ret = getExtendibleLeaf(data, ns[0], true);
     if (ret === undefined) {
-      throw new TypeError("fail to init because namespace " + ns[0] + " = " + data[ns[0]]);
+      throw new TypeError("fail to init because namespace " + ns[0] + " = " + (data as any)[ns[0]]);
     }
     return ret;
   }
-  let parent: Record<string, unknown> = data;
-  let obj: Record<string, unknown> | undefined = data[ns[0]] as Record<string, unknown> | undefined;
-  if (obj === undefined) obj = data[ns[0]] = {} as Record<string, unknown>;
+  let parent: RecordAny = data;
+  let obj: RecordAny | undefined = data[ns[0]] as RecordAny | undefined;
+  if (obj === undefined) obj = (data[ns[0]] = {}) as RecordAny;
   for (let i = 1; i < ns.length; i++) {
-    const n: string = ns[i];
-    const ret: Record<string, unknown> | undefined = getExtendibleLeaf(obj, n, true);
+    const n = ns[i];
+    const ret = getExtendibleLeaf(obj, n, true);
     if (ret === undefined) {
       throw new TypeError(
         "fail to init because namespace " + ns.join(".") + " = " + obj + "(" + typeof obj + ")",
@@ -77,7 +57,7 @@ export const initChild: InitChildFunction = (
     }
     parent = obj;
     obj = ret;
-    if (parent[n] === undefined) {
+    if ((parent as any)[n] === undefined) {
       throw new TypeError(
         "fail to init because namespace " + ns.slice(0, i).join(".") + " = " + parent,
       );
@@ -86,15 +66,10 @@ export const initChild: InitChildFunction = (
   return obj;
 };
 
-export const setVal: SetValFunction = (
-  data: Record<string, unknown>,
-  n: string | string[],
-  v: unknown,
-): unknown => {
-  const ns: string[] = Array.isArray(n) ? n : n.split(".");
-  // eslint-disable-next-line
-  const key: string = ns.pop() as string;
-  const ret: Record<string, unknown> = ns.length > 0 ? initChild(data, ns) : data;
+export const setVal = (data: RecordAny, n: string | string[], v: unknown): unknown => {
+  const ns = Array.isArray(n) ? n : n.split(".");
+  const key = ns.pop() as string;
+  const ret = ns.length > 0 ? initChild(data, ns) : data;
   ret[key] = v;
   return v;
 };

@@ -27,7 +27,7 @@
     },
 
     /* Vue specific */
-    "types": ["vite/client", "node", "vue/types/vue"],
+    "types": ["vite/client", "node"],
     "allowJs": true,
     "checkJs": false,
     "declaration": true,
@@ -40,7 +40,8 @@
   },
   "include": [
     "src/**/*",
-    "test/**/*"
+    "test/**/*",
+    "example/**/*"
   ],
   "exclude": [
     "node_modules",

@@ -1,6 +1,9 @@
 // JSON Schema related types
 export interface JsonSchemaProperty {
-  type: "string" | "number" | "integer" | "boolean" | "array" | "object";
+  // `type` is optional: many valid schemas omit it (fields described only by
+  // `format`, `enum`, etc.). Kept as a broad string to match real-world usage
+  // and to avoid narrowing issues with object-literal schemas in tests.
+  type?: string;
   title?: string;
   description?: string;
   default?: unknown;
@@ -9,7 +12,9 @@ export interface JsonSchemaProperty {
   visible?: boolean;
   name?: string;
   component?: string;
-  format?: "email" | "uri" | "regex";
+  // `format` accepts any string: JSON Schema defines many formats beyond the
+  // three originally enumerated (email/uri/regex) — date, time, color, etc.
+  format?: string;
   pattern?: string;
   minLength?: number;
   maxLength?: number;
@@ -26,9 +31,13 @@ export interface JsonSchemaProperty {
   checked?: boolean;
 }
 
-export interface JsonSchema extends JsonSchemaProperty {
+export interface JsonSchema extends Omit<JsonSchemaProperty, "required"> {
   $schema?: string;
   $id?: string;
+  // At object level, `required` is a list of property names (JSON Schema
+  // standard). This overrides the field-level `required?: boolean` from
+  // JsonSchemaProperty, which expresses whether a single field is required.
+  required?: string[];
 }
 
 // Field types for form rendering
@@ -67,11 +76,12 @@ export interface SubField {
 // Fields collection type
 export type Fields = Record<string, FormField | SubField>;
 
-// Vue component instance type for parser functions
+// Vue component instance type for parser functions.
+// Vue 3 uses Proxy-based reactivity, so the Vue 2 `$set` helper is no longer
+// needed — direct property assignment is reactive on reactive() objects.
 export interface VueInstance {
   value: Record<string, unknown>;
   fields: Fields;
-  $set: (target: Record<string, unknown>, key: string, value: unknown) => void;
 }
 
 // Utility function types

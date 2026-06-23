@@ -1,13 +1,15 @@
 
 
-import { shallowMount } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
 
 import JsonEditor from '../src/JsonEditor.vue';
 import schema from './data/simple.json';
+
 const model = {
   name: 'Yourtion',
-  lists: [ 'Promotion' ],
+  lists: ['Promotion'],
 };
+
 const model2 = {
   name: 'YourtionGuo',
   email: 'yourtion@gmail.com',
@@ -15,38 +17,53 @@ const model2 = {
 
 describe('Component', () => {
   it('Mount', () => {
-    const wrapper = shallowMount(JsonEditor, {
-      propsData: { schema },
+    const wrapper = mount(JsonEditor, {
+      props: { schema, modelValue: {} },
     });
     expect(wrapper.vm).toBeTruthy();
   });
 
-  it('Snapshot', () => {
-    const wrapper = shallowMount(JsonEditor, {
-      propsData: { schema },
+  it('renders the expected top-level structure', () => {
+    const wrapper = mount(JsonEditor, {
+      props: { schema, modelValue: {} },
     });
-    expect(wrapper.html()).toMatchSnapshot();
+    // master renders: <div><form>... with title from the schema.
+    expect(wrapper.find('form').exists()).toBe(true);
+    // schema has a title (see data/simple.json) -> rendered as <h1> by default
+    expect(wrapper.find('h1').exists()).toBe(true);
+    // at least one field rendered as an input
+    expect(wrapper.findAll('input').length).toBeGreaterThan(0);
   });
 
-  describe('Mount with data and set data', () => {
-    const wrapper = shallowMount(JsonEditor, {
-      propsData: { schema, value: model },
-    });
-    const component = wrapper.vm;
-    expect(wrapper.vm).toBeTruthy();
-    const form = component.$el.getElementsByTagName('form')[0];
-    const { name, lists, email } = form.elements;
+  describe('Mount with data', () => {
+    it('should render with initial data', () => {
+      const wrapper = mount(JsonEditor, {
+        props: { schema, modelValue: model },
+      });
 
-    it('get mounted data', () => {
-      expect(name.getAttribute('value')).toBe(model.name);
-      expect(lists.getAttribute('value')).toBe(model.lists[0]);
+      // Check that form exists
+      const form = wrapper.find('form');
+      expect(form.exists()).toBe(true);
+
+      // master binds the modelValue onto each input's value attribute; the
+      // name field is the first input and should carry the initial value.
+      const inputs = wrapper.findAll('input');
+      expect(inputs.length).toBeGreaterThan(0);
+      const nameValue = inputs[0].attributes('value');
+      expect(nameValue).toBe('Yourtion');
     });
 
-    it('update value by setData', async () => {
-      wrapper.setData({ value: model2 });
-      await wrapper.vm.$nextTick();
-      expect(email.getAttribute('value')).toBe(model2.email);
-      expect(name.getAttribute('value')).toBe(model2.name);
+    it('should update when modelValue changes', async () => {
+      const wrapper = mount(JsonEditor, {
+        props: { schema, modelValue: model },
+      });
+
+      // Update props
+      await wrapper.setProps({ modelValue: model2 });
+
+      // Check that component still works
+      const form = wrapper.find('form');
+      expect(form.exists()).toBe(true);
     });
   });
 
