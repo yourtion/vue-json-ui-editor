@@ -392,25 +392,37 @@ const JsonEditor = defineComponent({
           : components[field.type] || defaultInput;
 
       const children: any[] = [];
+      const handleInput = (event: any) => {
+        let value: unknown;
+        if (event && event.target) {
+          value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
+        } else {
+          value = event;
+        }
+        writeField(fieldName, value);
+      };
+
       const baseInputData: RecordAny = {
         ref: (el: any) => {
           if (el) inputRefs[fieldName] = el;
-        },
-        value: fieldValue,
-        onInput: (event: any) => {
-          let value: unknown;
-          if (event && event.target) {
-            value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
-          } else {
-            value = event;
-          }
-          writeField(fieldName, value);
         },
         onChange: (e: Event) => {
           emit("change", e);
         },
         ...elementOptions(element, {}, field, {}),
       };
+
+      // Vue 2 element-ui bound via `value` + `input` event. Vue 3 element-plus
+      // (and most v3 UI libs) bind via `modelValue` prop + `update:modelValue`
+      // event. Native HTML <input>/<textarea>/<select> still use value/input.
+      // Branch on isEffectivelyNative so both paths work.
+      if (isEffectivelyNative(element)) {
+        baseInputData.value = fieldValue;
+        baseInputData.onInput = handleInput;
+      } else {
+        baseInputData.modelValue = fieldValue;
+        baseInputData["onUpdate:modelValue"] = handleInput;
+      }
 
       switch (field.type) {
         case "text":
