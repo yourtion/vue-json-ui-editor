@@ -1,6 +1,6 @@
 {
   "name": "vue-json-ui-editor",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "A Vue 3 JSON Schema based form editor component with TypeScript support",
   "type": "module",
   "main": "dist/vue-json-ui-editor.umd.js",
@@ -62,14 +62,14 @@
     "ui-component",
     "vite"
   ],
-  "author": "Vue JSON UI Editor Contributors",
+  "author": "Yourtion <yourtion@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/vue-json-ui-editor/vue-json-ui-editor.git"
+    "url": "https://github.com/yourtion/vue-json-ui-editor.git"
   },
   "bugs": {
-    "url": "https://github.com/vue-json-ui-editor/vue-json-ui-editor/issues"
+    "url": "https://github.com/yourtion/vue-json-ui-editor/issues"
   },
-  "homepage": "https://github.com/vue-json-ui-editor/vue-json-ui-editor#readme"
+  "homepage": "https://github.com/yourtion/vue-json-ui-editor#readme"
 }
