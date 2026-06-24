@@ -1,148 +1,173 @@
 [![NPM version][npm-image]][npm-url]
-[![build status][travis-image]][travis-url]
-[![Test coverage][coveralls-image]][coveralls-url]
-[![David deps][david-image]][david-url]
 [![npm download][download-image]][download-url]
-[![npm license][license-image]][download-url]
+[![npm license][license-image]][license-url]
 
 [npm-image]: https://img.shields.io/npm/v/vue-json-ui-editor.svg?style=flat-square
 [npm-url]: https://npmjs.org/package/vue-json-ui-editor
-[travis-image]: https://img.shields.io/travis/yourtion/vue-json-ui-editor.svg?style=flat-square
-[travis-url]: https://travis-ci.org/yourtion/vue-json-ui-editor
-[coveralls-image]: https://img.shields.io/coveralls/yourtion/vue-json-ui-editor.svg?style=flat-square
-[coveralls-url]: https://coveralls.io/r/yourtion/vue-json-ui-editor?branch=master
-[david-image]: https://img.shields.io/david/yourtion/vue-json-ui-editor.svg?style=flat-square
-[david-url]: https://david-dm.org/yourtion/vue-json-ui-editor
 [download-image]: https://img.shields.io/npm/dm/vue-json-ui-editor.svg?style=flat-square
 [download-url]: https://npmjs.org/package/vue-json-ui-editor
-[license-image]: https://img.shields.io/npm/l/vue-json-ui-editor.svg
+[license-image]: https://img.shields.io/npm/l/vue-json-ui-editor.svg?style=flat-square
+[license-url]: https://github.com/yourtion/vue-json-ui-editor/blob/main/LICENSE
 
 # json-editor
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/yourtion/vue-json-ui-editor.svg)](https://greenkeeper.io/)
-[![DeepScan grade](https://deepscan.io/api/teams/2046/projects/2774/branches/19927/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=2046&pid=2774&bid=19927)
-
-Edit JSON in UI form with JSON Schema and Vue.js `<json-editor>` component.
+A Vue 3 JSON Schema based form editor component. Edit JSON in UI form with JSON Schema and [element-plus](https://element-plus.org/), with full TypeScript support.
 
 ![ScreenShot](screenshot.jpg)
+
+## Versions & Branches
+
+本仓库通过不同分支维护多个 Vue 版本的发布。请根据你的 Vue 版本选择对应分支：
+
+| Branch | Version | Vue | UI Library | Status |
+|--------|---------|-----|------------|--------|
+| [`main`](.) | 3.x | Vue 3 (`^3.5.0`) | [element-plus](https://element-plus.org/) (`^2.11.1`) | ✅ Active |
+| [`master`](../tree/master) | 2.x | Vue 2 (`^2.7.16`) | [element-ui](https://element.eleme.io/) (`^2.15.14`) | 🛠️ Maintenance |
+| [`v1`](../tree/v1) | 1.x | Vue 2 (`^2.5.17`) | element-ui (`^2.4.11`) | ⚰️ Legacy |
+
+> - `main` 为当前默认分支，对应 npm `3.x`（Vue 3 + element-plus）。
+> - 如果你使用 Vue 2，请切换到 [`master`](../tree/master) 分支（npm `2.x`）。
+> - 历史的 Vue 2 早期版本（npm `1.x`）请见 [`v1`](../tree/v1) 分支。
 
 ## Install
 
 ```bash
-npm install vue-json-ui-editor --save
+npm install vue-json-ui-editor
+# or
+pnpm add vue-json-ui-editor
 ```
+
+> `vue-json-ui-editor` 3.x targets **Vue 3** and is designed to work with [element-plus](https://element-plus.org/).
+> For **Vue 2**, see the [`master`](../tree/master) (2.x) or [`v1`](../tree/v1) (1.x) branch.
 
 ## Use
 
-```Vue
+```vue
 <template>
-<json-editor ref="JsonEditor" :schema="schema" v-model="model">
-    <button @click="submit">submit</button>
-    <button @click="reset">Reset</button>
-</json-editor>
+  <json-editor ref="jsonEditorRef" :schema="schema" v-model="model">
+    <el-button type="primary" @click="submit">Submit</el-button>
+    <el-button @click="reset">Reset</el-button>
+  </json-editor>
 </template>
 
-<script>
-const SCHEMA = {
+<script setup lang="ts">
+import { ref } from 'vue';
+import JsonEditor from 'vue-json-ui-editor';
+
+const schema = {
   type: 'object',
   title: 'vue-json-editor demo',
   properties: {
-    name: {
-      type: 'string',
-    },
-    email: {
-      type: 'string',
-    },
+    name: { type: 'string' },
+    email: { type: 'string' },
   },
 };
-// import vue-json-ui-editor
-import JsonEditor from 'vue-json-ui-editor';
-export default {
-  components: { JsonEditor },
-  data: () => ({
-    // init json schma file ( require('@/schema/newsletter') )
-    schema: SCHEMA,
-    // data
-    model: {
-      name: 'Yourtion',
-    },
-  }),
 
-  methods: {
-    submit(_e) {
-      alert(JSON.stringify(this.model));
-    },
-    reset() {
-      this.$refs.JsonEditor.reset();
-    },
-  },
-};
+const model = ref({ name: 'Yourtion' });
+const jsonEditorRef = ref<InstanceType<typeof JsonEditor>>();
+
+function submit() {
+  // jsonEditorRef.value?.form() returns the underlying element-plus form instance
+  jsonEditorRef.value?.form().validate((valid: boolean) => {
+    if (!valid) {
+      jsonEditorRef.value?.setErrorMessage('Please fill out the required fields');
+    }
+  });
+}
+
+function reset() {
+  jsonEditorRef.value?.reset();
+}
 </script>
 ```
 
-More info on: [Example-Subscription](example/components/Subscription.vue)
-Schema: [newsletter.json](example/schema/newsletter.json)
+> `json-editor` renders with native HTML elements by default. To style it with
+> **element-plus**, register the components via the static `JsonEditor.setComponent(type, component, option?)` API — see the [example](example/components/Subscription.vue).
+>
+> Complete working example: [example/components/Subscription.vue](example/components/Subscription.vue)
+> Schema: [example/schema/newsletter.json](example/schema/newsletter.json)
 
 ## props
 
 - `schema` ***Object*** (*required*)
 The JSON Schema object. Use the `v-if` directive to load asynchronous schema.
 
-- `v-model` ***Object*** (*optional*) `default: [object Object]`
-Use this directive to create two-way data bindings with the component. It automatically picks the correct way to update the element based on the input type.
+- `v-model` / `modelValue` ***Object*** (*optional*) `default: {}`
+Two-way binding for the form data. In Vue 3, `v-model` binds to the `modelValue` prop.
 
 - `auto-complete` ***String*** (*optional*)
-This property indicates whether the value of the control can be automatically completed by the browser. Possible values are: `off` and `on`.
+Whether the value of the control can be automatically completed by the browser. Possible values: `off`, `on`.
 
-- `no-validate` ***Boolean*** (*optional*)
-This Boolean attribute indicates that the form is not to be validated when submitted.
+- `no-validate` ***Boolean*** (*optional*) `default: false`
+Indicates that the form is not to be validated when submitted.
 
 - `input-wrapping-class` ***String*** (*optional*)
-Define the inputs wrapping class. Leave `undefined` to disable input wrapping.
-
-## data
-
-- `default`
- *initial value:* `[object Object]`
-
-- `fields`
- *initial value:* `[object Object]`
-
-- `error`
- *initial value:* `null`
-
-- `data`
- *initial value:* `[object Object]`
+Wraps each field's controls in a `<div class="...">`. Leave `undefined` to disable input wrapping.
 
 ## events
 
-- `input` Fired synchronously when the value of an element is changed.
+- `update:modelValue` Emitted (for `v-model`) whenever a field value changes.
 
-- `change` Fired when a change to the element's value is committed by the user.
+- `change` Fired when a change to an element's value is committed by the user.
 
-- `invalid` Fired when a submittable element has been checked and doesn't satisfy its constraints. The validity of submittable elements is checked before submitting their owner form, or after the `checkValidity()` of the element or its owner form is called.
+- `submit` Fired when the form is submitted and passes validation.
 
-- `submit` Fired when a form is submitted
+- `invalid` Fired when a submittable element has been checked and doesn't satisfy its constraints.
 
 ## methods
 
+Exposed via a template `ref` to the `<json-editor>` instance (e.g. `jsonEditorRef.value`):
+
 - `input(name)`
-Get a form input reference
+Get a form input reference.
 
 - `form()`
-Get the form reference
+Get the rendered form component instance (e.g. the element-plus `el-form`), so you can call `.validate()` / `.resetFields()` on it.
 
 - `checkValidity()`
-Checks whether the form has any constraints and whether it satisfies them. If the form fails its constraints, the browser fires a cancelable `invalid` event at the element, and then returns false.
+Checks whether the form satisfies its constraints. Returns `boolean`.
+
+- `validate()`
+Async validation shortcut — delegates to the underlying form component's `validate()` when available.
 
 - `reset()`
-Reset the value of all elements of the parent form.
-
-- `submit(event)`
-Send the content of the form to the server
+Reset the value of all elements of the form to the initial `modelValue`.
 
 - `setErrorMessage(message)`
-Set a message error.
+Set an error message (rendered via the `error` component type).
 
 - `clearErrorMessage()`
-clear the message error.
+Clear the error message.
+
+## static API
+
+- `JsonEditor.setComponent(type, component, option?)`
+Register a Vue component (or native tag name) for a given field/element `type` (e.g. `form`, `label`, `email`, `text`, `select`, `error`, …). `option` may be a plain object or a factory callback `({ vm, field, item }) => propsObject`. This is how you wire the editor to a UI library like element-plus.
+
+```js
+JsonEditor.setComponent('text', 'el-input');
+JsonEditor.setComponent('form', 'el-form', ({ vm }) => ({ model: vm.model, rules: {} }));
+JsonEditor.setComponent('error', 'el-alert', ({ vm }) => ({ type: 'error', title: vm.error }));
+```
+
+## TypeScript
+
+This package ships with bundled type declarations. You can import types directly:
+
+```ts
+import JsonEditor, { type JsonSchema } from 'vue-json-ui-editor';
+```
+
+## Development
+
+```bash
+pnpm install      # install dependencies
+pnpm dev          # start the example app (Vite)
+pnpm build:lib    # build the publishable library bundle
+pnpm test         # run unit tests (Vitest)
+pnpm check        # type-check + format + test
+```
+
+## License
+
+[MIT](LICENSE) © Yourtion
