@@ -4,39 +4,45 @@ import { deepClone, getChild, initChild, setVal } from '../src/utils';
 describe('utils - Enhanced Tests', () => {
   describe('deepClone', () => {
     it('should handle special object types', () => {
-      // Test with Date
+      // Date is cloned as a Date instance (not an ISO string).
       const date = new Date('2023-01-01T00:00:00Z');
       const dateObj = { date };
       const clonedDateObj = deepClone(dateObj);
-      expect(typeof clonedDateObj.date).toBe('string'); // Date becomes string
+      expect(clonedDateObj.date).toBeInstanceOf(Date);
+      expect(clonedDateObj.date).not.toBe(date);
+      expect((clonedDateObj.date as Date).getTime()).toBe(date.getTime());
 
-      // Test with RegExp
+      // RegExp is cloned as a RegExp instance (not an empty object).
       const regex = /test/g;
       const regexObj = { regex };
       const clonedRegexObj = deepClone(regexObj);
-      expect(clonedRegexObj.regex).toEqual({}); // RegExp becomes empty object after JSON serialization
+      expect(clonedRegexObj.regex).toBeInstanceOf(RegExp);
+      expect((clonedRegexObj.regex as RegExp).source).toBe('test');
+      expect(clonedRegexObj.regex).not.toBe(regex);
 
-      // Test with Function
+      // Functions are not data: kept by reference (not dropped).
       const func = () => 'test';
       const funcObj = { func };
       const clonedFuncObj = deepClone(funcObj);
-      expect(clonedFuncObj.func).toBeUndefined(); // Function is lost in JSON serialization
+      expect(clonedFuncObj.func).toBe(func);
 
-      // Test with Symbol
+      // Symbol values are preserved (not dropped).
       const sym = Symbol('test');
       const symObj = { sym };
       const clonedSymObj = deepClone(symObj);
-      expect(clonedSymObj.sym).toBeUndefined(); // Symbol is lost in JSON serialization
+      expect(clonedSymObj.sym).toBe(sym);
     });
 
-    it('should handle circular references gracefully', () => {
+    it('should preserve circular references instead of throwing', () => {
       const obj: any = { name: 'test' };
       obj.self = obj; // Create circular reference
 
-      // Should not throw but result may be incomplete
-      expect(() => {
-        deepClone(obj);
-      }).toThrow(); // JSON.stringify throws on circular references
+      const cloned = deepClone(obj);
+
+      expect(cloned).not.toBe(obj);
+      expect(cloned.name).toBe('test');
+      // The cycle is preserved and points at the clone itself.
+      expect(cloned.self).toBe(cloned);
     });
 
     it('should handle very large objects', () => {
@@ -86,10 +92,10 @@ describe('utils - Enhanced Tests', () => {
       expect(cloned.mixedArray[1]).toBe(42);
       expect(cloned.mixedArray[2]).toBe(true);
       expect(cloned.mixedArray[3]).toBe(null);
-      expect(cloned.mixedArray[4]).toBe(null); // undefined becomes null
+      expect(cloned.mixedArray[4]).toBe(undefined); // undefined is preserved
       expect(cloned.mixedArray[5]).toEqual({ nested: 'object' });
       expect(cloned.mixedArray[6]).toEqual([1, 2, 3]);
-      expect(typeof cloned.mixedArray[7]).toBe('string'); // Date becomes string
+      expect(cloned.mixedArray[7]).toBeInstanceOf(Date); // Date stays a Date
     });
   });
 

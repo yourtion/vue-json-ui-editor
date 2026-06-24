@@ -58,20 +58,21 @@ describe('JsonEditor - Edge Cases and Error Handling', () => {
     const circularValue: any = { name: 'test' };
     circularValue.self = circularValue;
 
-    // Mock console.error to prevent circular reference error from being logged
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // deepClone preserves the cycle instead of throwing "Converting circular
+    // structure to JSON", so the editor renders the declared fields normally
+    // instead of crashing during setup.
+    const wrapper = mount(JsonEditor, {
+      props: {
+        schema,
+        modelValue: circularValue,
+      },
+    });
 
-    expect(() => {
-      mount(JsonEditor, {
-        props: {
-          schema,
-          modelValue: circularValue,
-        },
-      });
-    }).toThrow(); // deepClone should throw on circular references
-
-    // Restore console.error
-    consoleErrorSpy.mockRestore();
+    expect(wrapper.exists()).toBe(true);
+    const input = wrapper.find('input');
+    expect(input.exists()).toBe(true);
+    // The `name` field still binds its value from the cyclic model.
+    expect((input.element as HTMLInputElement).value).toBe('test');
   });
 
   it('should handle very large schema', () => {

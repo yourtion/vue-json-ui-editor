@@ -1,10 +1,7 @@
 // src/parser.ts
-import { getChild, setVal } from "./utils";
+import type { FormField, FormFieldItem, JsonSchema, JsonSchemaProperty } from "./types";
 import type { RecordAny } from "./utils";
-
-export type JsonSchemaProperty = any;
-export type FormField = any;
-export type FormFieldItem = { value: any; label?: string };
+import { getChild, setVal } from "./utils";
 
 const ARRAY_KEYWORDS = ["anyOf", "oneOf", "enum"] as const;
 
@@ -15,7 +12,7 @@ function setCommonFields(schema: JsonSchemaProperty, field: FormField, schemaNam
       ? field.value
       : "";
   field.component = schema.component;
-  field.schemaType = schema.type;
+  field.schemaType = schema.type ?? "";
   field.label = schema.title || "";
   // Subscription.vue and other consumers read `field.title` (e.g. for el-form
   // rule messages). master only set `label`; we mirror it to `title` so both
@@ -132,7 +129,7 @@ export const parseArray = (
     }
   }
   if (!field.type) {
-    field.type = schema.type;
+    field.type = schema.type ?? "";
     field.value = field.value || [];
     field.items = [];
   }
@@ -143,23 +140,23 @@ export const parseArray = (
   return field;
 };
 
-// Overloaded function signatures
+// Overloaded function signatures.
+// loadFields is polymorphic: callers pass either a root-level JsonSchema
+// (`required: string[]`) or a field-level JsonSchemaProperty (`required:
+// boolean`), whose `required` shapes are incompatible by design — hence the
+// union. The implementation signature stays loosely typed so it can recurse
+// through both without forcing `as` at every internal call site.
 export function loadFields(
   vm: { value: RecordAny; fields: RecordAny },
-  schema: JsonSchemaProperty,
+  schema: JsonSchema | JsonSchemaProperty,
 ): void;
 export function loadFields(
   model: RecordAny,
-  schema: JsonSchemaProperty,
+  schema: JsonSchema | JsonSchemaProperty,
   fields: RecordAny,
   sub?: string[],
 ): void;
-export function loadFields(
-  vmOrModel: any,
-  schema: JsonSchemaProperty,
-  fields?: RecordAny,
-  sub?: string[],
-): void {
+export function loadFields(vmOrModel: any, schema: any, fields?: RecordAny, sub?: string[]): void {
   let model: RecordAny;
   let fieldsObj: RecordAny;
 

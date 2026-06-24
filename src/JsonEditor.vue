@@ -1,17 +1,17 @@
 <script lang="ts">
 import {
+  type Component,
   defineComponent,
   h,
+  onMounted,
   reactive,
   ref,
-  watch,
-  onMounted,
   resolveComponent,
-  type Component,
+  watch,
 } from "vue";
 import { loadFields } from "./parser";
-import { initChild, getChild, deepClone } from "./utils";
-import type { JsonSchema, FormField, Fields, FormFieldItem } from "./types";
+import type { Fields, FormField, FormFieldItem, JsonSchema } from "./types";
+import { deepClone, getChild, initChild } from "./utils";
 
 type RecordAny = Record<string, any>;
 
@@ -63,6 +63,127 @@ const components: Record<string, ComponentConfig> = {
 };
 const defaultInput: ComponentConfig = { component: "input", option: nativeOption };
 const defaultGroup: ComponentConfig = { component: "div", option: nativeOption };
+
+// Known native HTML element tag names. When a registered component is a string
+// that matches one of these, we pass it directly to h() as a native tag rather
+// than trying resolveComponent() (which would emit a spurious "Failed to
+// resolve component" warning for tags like h2/small that setComponent callers
+// commonly use). Hoisted to module scope so the Set is built once, not rebuilt
+// on every component instance.
+const NATIVE_HTML_TAGS = new Set([
+  "a",
+  "abbr",
+  "address",
+  "area",
+  "article",
+  "aside",
+  "audio",
+  "b",
+  "base",
+  "bdi",
+  "bdo",
+  "blockquote",
+  "body",
+  "br",
+  "button",
+  "canvas",
+  "caption",
+  "cite",
+  "code",
+  "col",
+  "colgroup",
+  "data",
+  "datalist",
+  "dd",
+  "del",
+  "details",
+  "dfn",
+  "dialog",
+  "div",
+  "dl",
+  "dt",
+  "em",
+  "embed",
+  "fieldset",
+  "figcaption",
+  "figure",
+  "footer",
+  "form",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "head",
+  "header",
+  "hgroup",
+  "hr",
+  "html",
+  "i",
+  "iframe",
+  "img",
+  "input",
+  "ins",
+  "kbd",
+  "label",
+  "legend",
+  "li",
+  "link",
+  "main",
+  "map",
+  "mark",
+  "menu",
+  "meta",
+  "meter",
+  "nav",
+  "noscript",
+  "object",
+  "ol",
+  "optgroup",
+  "option",
+  "output",
+  "p",
+  "param",
+  "picture",
+  "pre",
+  "progress",
+  "q",
+  "rp",
+  "rt",
+  "ruby",
+  "s",
+  "samp",
+  "script",
+  "section",
+  "select",
+  "slot",
+  "small",
+  "source",
+  "span",
+  "strong",
+  "style",
+  "sub",
+  "summary",
+  "sup",
+  "table",
+  "tbody",
+  "td",
+  "template",
+  "textarea",
+  "tfoot",
+  "th",
+  "thead",
+  "time",
+  "title",
+  "tr",
+  "track",
+  "u",
+  "ul",
+  "var",
+  "video",
+  "wbr",
+]);
 
 /**
  * Edit JSON in UI form with JSON Schema and Vue.js `<json-editor>` component.
@@ -228,125 +349,8 @@ const JsonEditor = defineComponent({
       return () => child;
     };
 
-    // Known native HTML element tag names. When a registered component is a
-    // string that matches one of these, we pass it directly to h() as a native
-    // tag rather than trying resolveComponent() (which would emit a spurious
-    // "Failed to resolve component" warning for tags like h2/small that
-    // setComponent callers commonly use).
-    const NATIVE_HTML_TAGS = new Set([
-      "a",
-      "abbr",
-      "address",
-      "area",
-      "article",
-      "aside",
-      "audio",
-      "b",
-      "base",
-      "bdi",
-      "bdo",
-      "blockquote",
-      "body",
-      "br",
-      "button",
-      "canvas",
-      "caption",
-      "cite",
-      "code",
-      "col",
-      "colgroup",
-      "data",
-      "datalist",
-      "dd",
-      "del",
-      "details",
-      "dfn",
-      "dialog",
-      "div",
-      "dl",
-      "dt",
-      "em",
-      "embed",
-      "fieldset",
-      "figcaption",
-      "figure",
-      "footer",
-      "form",
-      "h1",
-      "h2",
-      "h3",
-      "h4",
-      "h5",
-      "h6",
-      "head",
-      "header",
-      "hgroup",
-      "hr",
-      "html",
-      "i",
-      "iframe",
-      "img",
-      "input",
-      "ins",
-      "kbd",
-      "label",
-      "legend",
-      "li",
-      "link",
-      "main",
-      "map",
-      "mark",
-      "menu",
-      "meta",
-      "meter",
-      "nav",
-      "noscript",
-      "object",
-      "ol",
-      "optgroup",
-      "option",
-      "output",
-      "p",
-      "param",
-      "picture",
-      "pre",
-      "progress",
-      "q",
-      "rp",
-      "rt",
-      "ruby",
-      "s",
-      "samp",
-      "script",
-      "section",
-      "select",
-      "slot",
-      "small",
-      "source",
-      "span",
-      "strong",
-      "style",
-      "sub",
-      "summary",
-      "sup",
-      "table",
-      "tbody",
-      "td",
-      "template",
-      "textarea",
-      "tfoot",
-      "th",
-      "thead",
-      "time",
-      "title",
-      "tr",
-      "track",
-      "u",
-      "ul",
-      "var",
-      "video",
-      "wbr",
-    ]);
+    // NATIVE_HTML_TAGS is defined at module scope (above) so the Set is built
+    // once instead of on every component instance.
 
     // Resolve an element's component for h(). In Vue 2, createElement('el-form')
     // implicitly resolved globally-registered components from a string id. In
@@ -655,10 +659,15 @@ const JsonEditor = defineComponent({
       }
       return true;
     };
-    const reset = () => {
+    // Establish the data baseline from `defaultModel` (the snapshot of the
+    // initial modelValue). Shared by reset() and the onMounted bootstrap.
+    const applyDefault = () => {
       Object.keys(model).forEach((k) => delete model[k]);
       Object.assign(model, deepClone(defaultModel));
       reload();
+    };
+    const reset = () => {
+      applyDefault();
       emitting = true;
       emit("update:modelValue", model);
       emitting = false;
@@ -678,9 +687,13 @@ const JsonEditor = defineComponent({
     };
     const getFields = () => fields;
 
-    // master runs reset() on mount to establish the initial data baseline
+    // Bootstrap the initial data baseline. We deliberately do NOT emit
+    // update:modelValue here: this data originated from the parent's
+    // modelValue, so echoing it back on mount is redundant and can surprise
+    // v-model consumers that transform or watch the bound value. reset() still
+    // emits when called explicitly by the consumer.
     onMounted(() => {
-      reset();
+      applyDefault();
     });
 
     expose({

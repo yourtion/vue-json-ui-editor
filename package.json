@@ -1,6 +1,6 @@
 {
   "name": "vue-json-ui-editor",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "A Vue 3 JSON Schema based form editor component with TypeScript support",
   "type": "module",
   "main": "dist/vue-json-ui-editor.umd.js",
@@ -25,7 +25,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "type-check": "vue-tsc --noEmit",
-    "lint": "biome format --write src/",
+    "lint": "biome check --write src/",
     "format": "biome format --write src/",
     "check": "npm run type-check && npm run lint && npm run test",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",

@@ -63,26 +63,50 @@ describe('utils', () => {
       expect(cloned.config.settings.features).not.toBe(original.config.settings.features);
     });
 
-    it('should handle Date objects', () => {
+    it('should clone Date objects as Date instances', () => {
       const date = new Date('2023-01-01');
       const original = { timestamp: date };
       const cloned = deepClone(original);
-      
-      // deepClone converts Date to string, so we test for string equality
-      expect(cloned.timestamp).toBe(date.toISOString());
+
+      // Date is preserved as a Date instance (not mangled into an ISO string).
+      expect(cloned.timestamp).toBeInstanceOf(Date);
       expect(cloned.timestamp).not.toBe(date);
-      expect(typeof cloned.timestamp).toBe('string');
+      expect((cloned.timestamp as Date).getTime()).toBe(date.getTime());
     });
 
     it('should handle empty objects and arrays', () => {
       expect(deepClone({})).toEqual({});
       expect(deepClone([])).toEqual([]);
-      
+
       const emptyNested = { empty: {}, arr: [] };
       const cloned = deepClone(emptyNested);
       expect(cloned).toEqual(emptyNested);
       expect(cloned.empty).not.toBe(emptyNested.empty);
       expect(cloned.arr).not.toBe(emptyNested.arr);
+    });
+
+    it('should preserve circular references instead of throwing', () => {
+      const original: any = { name: 'test' };
+      original.self = original;
+
+      const cloned = deepClone(original);
+
+      expect(cloned).not.toBe(original);
+      expect(cloned.name).toBe('test');
+      // The cycle is preserved and points at the clone itself.
+      expect(cloned.self).toBe(cloned);
+    });
+
+    it('should clone RegExp and keep functions by reference', () => {
+      const fn = () => 1;
+      const original = { pattern: /abc/gi, fn };
+      const cloned = deepClone(original);
+
+      expect(cloned.pattern).toBeInstanceOf(RegExp);
+      expect((cloned.pattern as RegExp).source).toBe('abc');
+      expect(cloned.pattern).not.toBe(original.pattern);
+      // Functions are not data: kept by reference, not duplicated.
+      expect(cloned.fn).toBe(fn);
     });
   });
 

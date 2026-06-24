@@ -40,6 +40,11 @@ export default defineConfig(({ mode }) => {
           rollupOptions: {
             external: ["vue"],
             output: {
+              // src/index.ts ships both a default and named exports. "named"
+              // keeps the default reachable as `.default` for CJS consumers
+              // (matching the main/module split) and silences Rollup's mixed
+              // exports warning.
+              exports: "named",
               globals: {
                 vue: "Vue",
               },

@@ -1,10 +1,66 @@
 // src/utils.ts
 export type RecordAny = Record<string, any>;
 
+/**
+ * Deep-clone a value, preserving cycles and special object types.
+ *
+ * Unlike `JSON.parse(JSON.stringify(obj))`, this:
+ * - keeps circular references intact instead of throwing
+ *   "Converting circular structure to JSON";
+ * - clones Date / RegExp / Map / Set instead of mangling them into strings
+ *   or empty objects;
+ * - keeps functions by reference (they are not data).
+ *
+ * Used to snapshot `modelValue`/`schema`, which may originate from arbitrary
+ * user objects, so being cycle- and type-safe matters more than speed.
+ */
 export const deepClone = <T>(obj: T): T => {
   if (obj === undefined || obj === null) return obj;
   if (typeof obj !== "object") return obj;
-  return JSON.parse(JSON.stringify(obj));
+
+  // Tracks already-cloned objects so a cycle clones into an equivalent cycle
+  // instead of recursing forever.
+  const seen = new WeakMap<object, object>();
+
+  const clone = (value: unknown): unknown => {
+    if (value === undefined || value === null) return value;
+    if (typeof value !== "object") return value;
+
+    const hit = seen.get(value as object);
+    if (hit !== undefined) return hit;
+
+    if (value instanceof Date) {
+      const copy = new Date(value.getTime());
+      seen.set(value as object, copy);
+      return copy;
+    }
+    if (value instanceof RegExp) {
+      const copy = new RegExp(value.source, value.flags);
+      seen.set(value as object, copy);
+      return copy;
+    }
+    if (value instanceof Map) {
+      const copy = new Map();
+      seen.set(value as object, copy);
+      value.forEach((v, k) => copy.set(clone(k), clone(v)));
+      return copy;
+    }
+    if (value instanceof Set) {
+      const copy = new Set();
+      seen.set(value as object, copy);
+      value.forEach((v) => copy.add(clone(v)));
+      return copy;
+    }
+
+    const copy: RecordAny = Array.isArray(value) ? [] : {};
+    seen.set(value as object, copy);
+    for (const key of Object.keys(value)) {
+      copy[key] = clone((value as RecordAny)[key]);
+    }
+    return copy;
+  };
+
+  return clone(obj) as T;
 };
 
 export function getExtendibleLeaf(
