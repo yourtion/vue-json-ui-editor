@@ -66,10 +66,13 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourtion/vue-json-ui-editor.git"
+    "url": "git+https://github.com/yourtion/vue-json-ui-editor.git"
   },
   "bugs": {
     "url": "https://github.com/yourtion/vue-json-ui-editor/issues"
   },
-  "homepage": "https://github.com/yourtion/vue-json-ui-editor#readme"
+  "homepage": "https://github.com/yourtion/vue-json-ui-editor#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.com/"
+  }
 }
