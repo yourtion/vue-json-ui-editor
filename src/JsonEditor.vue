@@ -46,6 +46,12 @@ const components: Record<string, ComponentConfig> = {
   textarea: { component: "textarea", option: nativeOption },
   radiogroup: { component: "div", option: nativeOption },
   checkboxgroup: { component: "div", option: nativeOption },
+  // object 数组增删行按钮（默认原生 <button>；注册为 el-button 即可获得 UI 库样式）
+  arrayadd: { component: "button", option: { ...nativeOption, type: "button", label: "Add" } },
+  arrayremove: {
+    component: "button",
+    option: { ...nativeOption, type: "button", label: "Remove" },
+  },
 };
 const defaultInput: ComponentConfig = { component: "input", option: nativeOption };
 const defaultGroup: ComponentConfig = { component: "div", option: nativeOption };
@@ -428,6 +434,11 @@ const JsonEditor = defineComponent({
 
     const renderArrayItems = (field: FormField, fieldName: string): any[] => {
       const arr = ensureArray(fieldName);
+      const addComp = getComp("arrayadd");
+      const removeComp = getComp("arrayremove");
+      // 按钮文字：从 option.label 取（默认 Add/Remove，用户可 setComponent 覆盖）
+      const addLabel = (addComp?.option as ComponentOption)?.label ?? "Add";
+      const removeLabel = (removeComp?.option as ComponentOption)?.label ?? "Remove";
       const rows = arr.map((_, i) => {
         // 深拷贝 itemsSchema 避免污染原 schema（loadFields 会 mutate property.name）
         const itemSchema = deepClone(field.itemsSchema as JsonSchema);
@@ -444,30 +455,32 @@ const JsonEditor = defineComponent({
           const f = rowFields[k] as FormField;
           if (f && f.name) cells.push(renderInput(f, f.name)[0]);
         }
+        const removeBtnData = elementOptions(removeComp, {}, field, {});
         return h("div", { class: "json-editor-array-row" }, [
           h("div", { class: "json-editor-array-row-fields" }, cells),
           h(
-            "button",
+            resolveComp(removeComp),
             {
-              type: "button",
               class: "json-editor-array-remove",
               onClick: () => removeRow(fieldName, i),
+              ...removeBtnData,
             },
-            "删除",
+            wrapChild(removeComp, removeLabel),
           ),
         ]);
       });
+      const addBtnData = elementOptions(addComp, {}, field, {});
       return [
         h("div", { class: "json-editor-array" }, [
           ...rows,
           h(
-            "button",
+            resolveComp(addComp),
             {
-              type: "button",
               class: "json-editor-array-add",
               onClick: () => addRow(fieldName),
+              ...addBtnData,
             },
-            "添加",
+            wrapChild(addComp, addLabel),
           ),
         ]),
       ];

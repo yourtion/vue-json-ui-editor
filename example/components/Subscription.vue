@@ -99,6 +99,9 @@ JsonEditor.setComponent('switch', 'el-switch');
 JsonEditor.setComponent('color', 'el-color-picker');
 JsonEditor.setComponent('rate', 'el-rate');
 JsonEditor.setComponent('date', 'el-date-picker');
+// object 数组增删行按钮 → el-button（type 控制样式，label 控制文字）
+JsonEditor.setComponent('arrayadd', 'el-button', { type: 'primary', label: '添加' });
+JsonEditor.setComponent('arrayremove', 'el-button', { type: 'danger', label: '删除' });
 
 // You can also use the component object
 JsonEditor.setComponent('option', Option);
