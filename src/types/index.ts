@@ -9,6 +9,7 @@ export interface JsonSchemaProperty {
   default?: unknown;
   required?: boolean;
   disabled?: boolean;
+  readOnly?: boolean;
   visible?: boolean;
   name?: string;
   component?: string;
@@ -50,6 +51,7 @@ export interface FormField {
   description: string;
   required: boolean;
   disabled: boolean;
+  readOnly: boolean;
   name: string;
   checked?: boolean;
   multiple?: boolean;

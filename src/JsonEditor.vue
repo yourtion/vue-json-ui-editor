@@ -415,6 +415,11 @@ const JsonEditor = defineComponent({
         },
         ...elementOptions(element, {}, field, {}),
       };
+      // disabled / readOnly 透传：parser 已解析到 field，这里传给渲染组件
+      // （el-input 的 disabled、原生 input 的 disabled/readonly）。
+      // 条件挂载，避免给原生元素传 undefined。
+      if (field.disabled) baseInputData.disabled = true;
+      if (field.readOnly) baseInputData.readonly = true;
 
       // Vue 2 element-ui bound via `value` + `input` event. Vue 3 element-plus
       // (and most v3 UI libs) bind via `modelValue` prop + `update:modelValue`

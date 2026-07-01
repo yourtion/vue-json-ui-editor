@@ -20,7 +20,9 @@ function setCommonFields(schema: JsonSchemaProperty, field: FormField, schemaNam
   field.title = schema.title || "";
   field.description = schema.description || "";
   field.required = schema.required || false;
-  field.disabled = schema.disabled || false;
+  // readOnly: JSON Schema 标准的只读标记。readOnly 同时隐含 disabled（只读字段不应可编辑）。
+  field.readOnly = schema.readOnly || false;
+  field.disabled = schema.disabled || schema.readOnly || false;
   field.name = schemaName;
 }
 
