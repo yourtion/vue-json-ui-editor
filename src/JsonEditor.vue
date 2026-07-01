@@ -411,10 +411,12 @@ const JsonEditor = defineComponent({
     // 列表底部「添加」按钮。每行字段通过 loadFields 递归 itemsSchema 渲染，
     // namespaced 到 `${fieldName}.${index}.`（getChild/setVal 已支持数组索引路径）。
     const ensureArray = (fieldName: string): unknown[] => {
-      const cur = getChild(model, [fieldName]);
+      // fieldName 按点拆分，支持嵌套 object 内的 array（如 sub.sub2.contacts）
+      const ns = fieldName.split(".");
+      const cur = getChild(model, ns);
       if (Array.isArray(cur)) return cur;
       const arr: unknown[] = [];
-      setVal(model, [fieldName], arr);
+      setVal(model, ns, arr);
       return arr;
     };
     const addRow = (fieldName: string) => {
@@ -443,9 +445,10 @@ const JsonEditor = defineComponent({
         // 深拷贝 itemsSchema 避免污染原 schema（loadFields 会 mutate property.name）
         const itemSchema = deepClone(field.itemsSchema as JsonSchema);
         const rowFields: Fields = {};
-        // loadFields 用 sub 前缀 [fieldName, i] → 字段 name 为 `fieldName.i.key`
+        // loadFields 用 sub 前缀：fieldName 按点拆分（支持嵌套 object 内的 array，
+        // 如 sub.sub2.contacts → ["sub","sub2","contacts"]），追加 index 段。
         loadFields({ value: model, fields: rowFields } as any, itemSchema, rowFields, [
-          fieldName,
+          ...fieldName.split("."),
           String(i),
         ]);
         // 渲染该行每个字段（递归 renderInput，fieldName 已含 index 前缀）

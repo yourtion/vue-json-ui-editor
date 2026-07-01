@@ -69,7 +69,8 @@ export function getExtendibleLeaf(
   initIt: boolean,
 ): RecordAny | undefined {
   const v: unknown = obj[n];
-  if (v && typeof v === "object" && !Array.isArray(v)) {
+  // 已是对象或数组 → 直接返回作为可扩展容器（数组也允许继续往内写入索引）
+  if (v && typeof v === "object") {
     return v as RecordAny;
   }
   if (initIt && v === undefined) {
@@ -81,10 +82,6 @@ export function getExtendibleLeaf(
       }
     }
     return (obj[n] = {}) as RecordAny;
-  }
-  // 父是数组且索引处已有对象元素 → 返回该元素
-  if (Array.isArray(obj) && v && typeof v === "object") {
-    return v as RecordAny;
   }
   return undefined;
 }

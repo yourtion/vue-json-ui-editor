@@ -73,4 +73,40 @@ describe("object 数组增删行", () => {
       .name;
     expect(emitted).toBe("bob");
   });
+
+  it("嵌套 object 内的 array：路径含点号也能增删行", async () => {
+    const nestedSchema = {
+      type: "object",
+      properties: {
+        outer: {
+          type: "object",
+          name: "outer",
+          properties: {
+            items: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: { label: { type: "string", title: "Label" } },
+              },
+            },
+          },
+        },
+      },
+    };
+    const wrapper = mount(JsonEditor, {
+      props: { schema: nestedSchema, modelValue: { outer: { items: [] } } },
+    });
+    expect(wrapper.find(".json-editor-array-add").exists()).toBe(true);
+    // 添加一行（路径 outer.items → 嵌套，不应抛错）
+    await wrapper.find(".json-editor-array-add").trigger("click");
+    expect(wrapper.findAll(".json-editor-array-row").length).toBe(1);
+    // 行内字段渲染
+    expect(wrapper.find(".json-editor-array-row input").exists()).toBe(true);
+    // 再添加 + 删除
+    await wrapper.find(".json-editor-array-add").trigger("click");
+    expect(wrapper.findAll(".json-editor-array-row").length).toBe(2);
+    await wrapper.findAll(".json-editor-array-remove")[0].trigger("click");
+    expect(wrapper.findAll(".json-editor-array-row").length).toBe(1);
+  });
 });
+

@@ -127,10 +127,12 @@ const model = ref({
   name: 'Yourtion',
   sub: {
     sEmail: 'yourtion@gmail.com',
+    sub2: {
+      contacts: [
+        { email: 'alice@example.com', role: 'admin' },
+      ],
+    },
   },
-  contacts: [
-    { email: 'alice@example.com', role: 'admin' },
-  ],
 });
 
 // Template ref
