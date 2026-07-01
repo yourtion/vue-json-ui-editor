@@ -10,35 +10,19 @@ import {
   watch,
 } from "vue";
 import { loadFields } from "./parser";
-import type { Fields, FormField, FormFieldItem, JsonSchema } from "./types";
+import type {
+  ComponentConfig,
+  ComponentOption,
+  Fields,
+  FormField,
+  FormFieldItem,
+  JsonSchema,
+  OptionContext,
+  VmContext,
+} from "./types";
 import { deepClone, getChild, initChild } from "./utils";
 
 type RecordAny = Record<string, any>;
-
-interface ComponentOption {
-  native?: boolean;
-  type?: string;
-  label?: string;
-  disableWrappingLabel?: boolean;
-  [key: string]: unknown;
-}
-
-interface ComponentConfig {
-  component: string | Component;
-  option: ComponentOption | ((ctx: OptionContext) => RecordAny);
-}
-
-interface OptionContext {
-  vm: VmContext;
-  field: FormField;
-  item: Record<string, unknown>;
-}
-
-interface VmContext {
-  model: RecordAny;
-  fields: Fields;
-  error: string | null;
-}
 
 const nativeOption: ComponentOption = { native: true };
 const components: Record<string, ComponentConfig> = {
@@ -721,16 +705,16 @@ const JsonEditor = defineComponent({
 });
 
 export default JsonEditor;
+
 // Static API: register a component for a field/element type. Mirrors master's
 // setComponent(type, component, option?). `option` may be a plain object or a
 // factory callback ({ vm, field, item }) => propsObject.
-// Usage: (JsonEditor as any).setComponent('email', ElInput)
-//        (JsonEditor as any).setComponent('form', ElForm, ({ vm }) => ({ ... }))
-(JsonEditor as any).setComponent = (
-  type: string,
-  component: string | Component,
-  option: ComponentOption | ((ctx: OptionContext) => RecordAny) = {},
-) => {
+// Usage: JsonEditor.setComponent('email', ElInput)
+//        JsonEditor.setComponent('form', ElForm, ({ vm }) => ({ ... }))
+interface JsonEditorStatic {
+  setComponent: (type: string, component: string | Component, option?: ComponentOption) => void;
+}
+(JsonEditor as unknown as JsonEditorStatic).setComponent = (type, component, option = {}) => {
   components[type] = { component, option };
 };
 </script>

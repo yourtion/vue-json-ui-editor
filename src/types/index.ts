@@ -1,4 +1,39 @@
 // JSON Schema related types
+import type { Component } from "vue";
+import type { RecordAny } from "../utils.js";
+
+/** 组件注册选项：纯对象 props 或工厂回调（接收 {vm, field, item}） */
+export interface ComponentOption {
+  native?: boolean;
+  type?: string;
+  label?: string;
+  disableWrappingLabel?: boolean;
+  [key: string]: unknown;
+}
+
+/** 单个类型→组件的配置 */
+export interface ComponentConfig {
+  component: string | Component;
+  option: ComponentOption | ((ctx: OptionContext) => RecordAny);
+}
+
+/** 类型→组件的注册表（per-instance components prop 或全局默认） */
+export type ComponentsMap = Record<string, ComponentConfig>;
+
+/** setComponent / option 回调的上下文：当前 vm（model/fields/error）、字段、候选项 */
+export interface OptionContext {
+  vm: VmContext;
+  field: FormField;
+  item: Record<string, unknown>;
+}
+
+/** vm 上下文：暴露给 option 回调的响应式 model/fields/error */
+export interface VmContext {
+  model: RecordAny;
+  fields: Fields;
+  error: string | null;
+}
+
 export interface JsonSchemaProperty {
   // `type` is optional: many valid schemas omit it (fields described only by
   // `format`, `enum`, etc.). Kept as a broad string to match real-world usage
