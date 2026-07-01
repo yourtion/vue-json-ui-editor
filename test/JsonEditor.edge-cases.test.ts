@@ -146,7 +146,7 @@ describe('JsonEditor - Edge Cases and Error Handling', () => {
     const wrapper = mount(JsonEditor, {
       props: {
         schema,
-        value: { name: '' },
+        modelValue: { name: '' },
       },
     });
 
@@ -189,7 +189,7 @@ describe('JsonEditor - Edge Cases and Error Handling', () => {
     const wrapper = mount(JsonEditor, {
       props: {
         schema,
-        value: { text: longValue },
+        modelValue: { text: longValue },
       },
     });
 

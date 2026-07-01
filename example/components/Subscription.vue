@@ -79,8 +79,10 @@ JsonEditor.setComponent('form', 'el-form', ({ vm }) => {
 });
 
 // http://element.eleme.io/#/en-US/component/form#validation
+// 注意：el-form-item 的标签文字来自 label prop（非默认插槽），回调须返回 label。
 JsonEditor.setComponent('label', 'el-form-item', ({ field }) => ({
   prop: field.name,
+  label: field.label,
 }));
 
 JsonEditor.setComponent('email', 'el-input');
