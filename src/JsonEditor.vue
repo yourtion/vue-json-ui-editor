@@ -569,6 +569,11 @@ const JsonEditor = defineComponent({
         if ((fieldsObj as RecordAny).$title) {
           nodes.push(h("div", { class: "sub-title" }, (fieldsObj as RecordAny).$title));
         }
+        if ((fieldsObj as RecordAny).$description) {
+          nodes.push(
+            h("div", { class: "sub-description" }, (fieldsObj as RecordAny).$description),
+          );
+        }
         Object.keys(fieldsObj).forEach((key) => {
           if (key.indexOf("$") === 0) return;
           const field = fieldsObj[key] as FormField;
