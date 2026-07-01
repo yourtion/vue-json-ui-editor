@@ -109,6 +109,20 @@ export const parseArray = (
   setCommonFields(schema, field, schemaName);
   field.multiple = (schema.minItems || 0) > 1;
   field.items = [];
+
+  // 优先：object 数组（items: {type:object, properties}）→ 可增删行的子表单列表
+  if (schema.items?.type === "object" && schema.items.properties) {
+    field.type = "arrayitems";
+    field.itemsSchema = schema.items;
+    const cur = model ? (model as RecordAny)[schemaName] : undefined;
+    field.value = Array.isArray(cur) ? cur : [];
+    if (schema.name) {
+      field.name = schemaName;
+      setFormValue(model, field);
+    }
+    return field;
+  }
+
   for (const keyword of ARRAY_KEYWORDS) {
     if (Object.prototype.hasOwnProperty.call(schema, keyword)) {
       switch (keyword) {

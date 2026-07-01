@@ -22,7 +22,7 @@ import type {
   OptionContext,
   VmContext,
 } from "./types";
-import { deepClone, getChild, initChild } from "./utils";
+import { deepClone, getChild, initChild, setVal } from "./utils";
 
 type RecordAny = Record<string, any>;
 
@@ -400,8 +400,85 @@ const JsonEditor = defineComponent({
       emitting = false;
     };
 
+    // --- object 数组增删行 ---------------------------------------------
+    // 对 schema.items.type==='object' 的数组字段，渲染每行为子表单 + 删除按钮，
+    // 列表底部「添加」按钮。每行字段通过 loadFields 递归 itemsSchema 渲染，
+    // namespaced 到 `${fieldName}.${index}.`（getChild/setVal 已支持数组索引路径）。
+    const ensureArray = (fieldName: string): unknown[] => {
+      const cur = getChild(model, [fieldName]);
+      if (Array.isArray(cur)) return cur;
+      const arr: unknown[] = [];
+      setVal(model, [fieldName], arr);
+      return arr;
+    };
+    const addRow = (fieldName: string) => {
+      const arr = ensureArray(fieldName);
+      arr.push({});
+      emitting = true;
+      emit("update:modelValue", model);
+      emitting = false;
+    };
+    const removeRow = (fieldName: string, index: number) => {
+      const arr = ensureArray(fieldName);
+      arr.splice(index, 1);
+      emitting = true;
+      emit("update:modelValue", model);
+      emitting = false;
+    };
+
+    const renderArrayItems = (field: FormField, fieldName: string): any[] => {
+      const arr = ensureArray(fieldName);
+      const rows = arr.map((_, i) => {
+        // 深拷贝 itemsSchema 避免污染原 schema（loadFields 会 mutate property.name）
+        const itemSchema = deepClone(field.itemsSchema as JsonSchema);
+        const rowFields: Fields = {};
+        // loadFields 用 sub 前缀 [fieldName, i] → 字段 name 为 `fieldName.i.key`
+        loadFields({ value: model, fields: rowFields } as any, itemSchema, rowFields, [
+          fieldName,
+          String(i),
+        ]);
+        // 渲染该行每个字段（递归 renderInput，fieldName 已含 index 前缀）
+        const cells: any[] = [];
+        for (const k of Object.keys(rowFields)) {
+          if (k.indexOf("$") === 0) continue;
+          const f = rowFields[k] as FormField;
+          if (f && f.name) cells.push(renderInput(f, f.name)[0]);
+        }
+        return h("div", { class: "json-editor-array-row" }, [
+          h("div", { class: "json-editor-array-row-fields" }, cells),
+          h(
+            "button",
+            {
+              type: "button",
+              class: "json-editor-array-remove",
+              onClick: () => removeRow(fieldName, i),
+            },
+            "删除",
+          ),
+        ]);
+      });
+      return [
+        h("div", { class: "json-editor-array" }, [
+          ...rows,
+          h(
+            "button",
+            {
+              type: "button",
+              class: "json-editor-array-add",
+              onClick: () => addRow(fieldName),
+            },
+            "添加",
+          ),
+        ]),
+      ];
+    };
+
     // --- render: per-field input vnode ---------------------------------
     const renderInput = (field: FormField, fieldName: string) => {
+      // object 数组（items: {type:object}）：渲染可增删行的子表单列表
+      if (field.type === "arrayitems" && field.itemsSchema) {
+        return renderArrayItems(field, fieldName);
+      }
       const fieldValue = getChild(model, fieldName.split("."));
       if (!field.value) {
         field.value = fieldValue;
@@ -570,9 +647,7 @@ const JsonEditor = defineComponent({
           nodes.push(h("div", { class: "sub-title" }, (fieldsObj as RecordAny).$title));
         }
         if ((fieldsObj as RecordAny).$description) {
-          nodes.push(
-            h("div", { class: "sub-description" }, (fieldsObj as RecordAny).$description),
-          );
+          nodes.push(h("div", { class: "sub-description" }, (fieldsObj as RecordAny).$description));
         }
         Object.keys(fieldsObj).forEach((key) => {
           if (key.indexOf("$") === 0) return;

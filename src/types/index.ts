@@ -93,6 +93,8 @@ export interface FormField {
   checked?: boolean;
   multiple?: boolean;
   items?: FormFieldItem[];
+  /** object 数组增删行：items 子对象 schema（type:object + properties） */
+  itemsSchema?: JsonSchemaProperty;
   minlength?: number;
   maxlength?: number;
   pattern?: string;
