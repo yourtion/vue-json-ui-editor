@@ -98,6 +98,7 @@ JsonEditor.setComponent('select', 'el-select');
 JsonEditor.setComponent('switch', 'el-switch');
 JsonEditor.setComponent('color', 'el-color-picker');
 JsonEditor.setComponent('rate', 'el-rate');
+JsonEditor.setComponent('date', 'el-date-picker');
 
 // You can also use the component object
 JsonEditor.setComponent('option', Option);
@@ -124,6 +125,9 @@ const model = ref({
   sub: {
     sEmail: 'yourtion@gmail.com',
   },
+  contacts: [
+    { email: 'alice@example.com', role: 'admin' },
+  ],
 });
 
 // Template ref

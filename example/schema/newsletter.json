@@ -116,6 +116,40 @@
       "attrs": {
         "type": "switch"
       }
+    },
+    "code": {
+      "type": "string",
+      "title": "ReadOnly Code",
+      "description": "readOnly:true renders a disabled input — value cannot be changed",
+      "readOnly": true,
+      "default": "IMMUTABLE-001"
+    },
+    "frozen": {
+      "type": "string",
+      "title": "Disabled Field",
+      "description": "disabled:true also disables the input",
+      "disabled": true,
+      "default": "LOCKED"
+    },
+    "subscribedAt": {
+      "type": "string",
+      "title": "Subscribed At",
+      "format": "date-time",
+      "attrs": {
+        "type": "date"
+      }
+    },
+    "contacts": {
+      "type": "array",
+      "title": "Contacts",
+      "description": "items:{type:object} renders an editable list of sub-form rows with add/remove buttons",
+      "items": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "format": "email", "title": "Email" },
+          "role": { "type": "string", "title": "Role", "enum": ["admin", "editor", "viewer"] }
+        }
+      }
     }
   },
   "additionalProperties": false,
