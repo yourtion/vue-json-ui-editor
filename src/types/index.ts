@@ -17,8 +17,10 @@ export interface ComponentConfig {
   option: ComponentOption | ((ctx: OptionContext) => RecordAny);
 }
 
-/** 类型→组件的注册表（per-instance components prop 或全局默认） */
-export type ComponentsMap = Record<string, ComponentConfig>;
+/** 类型→组件的注册表（per-instance components prop 或全局默认）。
+ *  值可为完整 ComponentConfig，或简写为组件名/组件对象（与 setComponent 一致，
+ *  合并时自动归一化为 { component, option: {} }）。 */
+export type ComponentsMap = Record<string, ComponentConfig | string | Component>;
 
 /** setComponent / option 回调的上下文：当前 vm（model/fields/error）、字段、候选项 */
 export interface OptionContext {
