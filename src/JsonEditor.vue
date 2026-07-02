@@ -475,16 +475,20 @@ const JsonEditor = defineComponent({
       const addBtnData = elementOptions(addComp, {}, field, {});
       return [
         h("div", { class: "json-editor-array" }, [
+          // header：标题（field.label）左 + 添加按钮右
+          h("div", { class: "json-editor-array-header" }, [
+            h("span", { class: "json-editor-array-title" }, field.label || ""),
+            h(
+              resolveComp(addComp),
+              {
+                class: "json-editor-array-add",
+                onClick: () => addRow(fieldName),
+                ...addBtnData,
+              },
+              wrapChild(addComp, addLabel),
+            ),
+          ]),
           ...rows,
-          h(
-            resolveComp(addComp),
-            {
-              class: "json-editor-array-add",
-              onClick: () => addRow(fieldName),
-              ...addBtnData,
-            },
-            wrapChild(addComp, addLabel),
-          ),
         ]),
       ];
     };

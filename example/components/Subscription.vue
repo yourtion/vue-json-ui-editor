@@ -234,6 +234,16 @@ small {
 }
 
 /* object 数组增删行：行内字段横排，圆形删除按钮居右对齐 */
+.json-editor-array-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 4px 0 2px;
+}
+.json-editor-array-title {
+  font-weight: 600;
+  color: #303133;
+}
 .json-editor-array-row {
   display: flex;
   gap: 10px;
