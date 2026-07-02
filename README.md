@@ -13,7 +13,7 @@
 
 A Vue 3 JSON Schema based form editor component. Edit JSON in UI form with JSON Schema and [element-plus](https://element-plus.org/), with full TypeScript support.
 
-![ScreenShot](screenshot.jpg)
+![ScreenShot](screenshot.png)
 
 ## Versions & Branches
 
