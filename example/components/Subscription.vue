@@ -228,6 +228,9 @@ small {
 
 .json {
   text-align: left;
+  max-height: 520px;
+  overflow: auto;
+  margin: 0;
 }
 
 /* object 数组增删行：行内字段横排，圆形删除按钮居右对齐 */
