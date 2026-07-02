@@ -69,10 +69,18 @@ export function getExtendibleLeaf(
   initIt: boolean,
 ): RecordAny | undefined {
   const v: unknown = obj[n];
-  if (v && typeof v === "object" && !Array.isArray(v)) {
+  // 已是对象或数组 → 直接返回作为可扩展容器（数组也允许继续往内写入索引）
+  if (v && typeof v === "object") {
     return v as RecordAny;
   }
   if (initIt && v === undefined) {
+    // 数组索引路径：父是数组时按索引初始化一个对象（用于 array items 子字段）
+    if (Array.isArray(obj)) {
+      const idx = Number(n);
+      if (Number.isInteger(idx)) {
+        return (obj[idx] = {}) as RecordAny;
+      }
+    }
     return (obj[n] = {}) as RecordAny;
   }
   return undefined;
@@ -92,6 +100,14 @@ export const getChild = (data: RecordAny, ns: string[]): unknown => {
   return (obj as RecordAny)[ns[i]];
 };
 
+// 判断路径段是否为数组索引（纯数字字符串）
+const isArrayIndex = (seg: string): boolean => Number.isInteger(Number(seg));
+
+// 按下一路径段决定容器类型：下一段是数字索引 → 建数组，否则建对象
+function containerFor(nextSeg: string): RecordAny | unknown[] {
+  return isArrayIndex(nextSeg) ? [] : {};
+}
+
 export const initChild = (data: RecordAny, ns: string[]): RecordAny => {
   if (ns.length === 1) {
     const ret = getExtendibleLeaf(data, ns[0], true);
@@ -102,7 +118,7 @@ export const initChild = (data: RecordAny, ns: string[]): RecordAny => {
   }
   let parent: RecordAny = data;
   let obj: RecordAny | undefined = data[ns[0]] as RecordAny | undefined;
-  if (obj === undefined) obj = (data[ns[0]] = {}) as RecordAny;
+  if (obj === undefined) obj = (data[ns[0]] = containerFor(ns[1])) as RecordAny;
   for (let i = 1; i < ns.length; i++) {
     const n = ns[i];
     const ret = getExtendibleLeaf(obj, n, true);
@@ -125,7 +141,23 @@ export const initChild = (data: RecordAny, ns: string[]): RecordAny => {
 export const setVal = (data: RecordAny, n: string | string[], v: unknown): unknown => {
   const ns = Array.isArray(n) ? n : n.split(".");
   const key = ns.pop() as string;
+  // 确保容器类型正确：若 key 是数组索引，最末层容器必须是数组
+  if (ns.length > 0 && isArrayIndex(key)) {
+    const parent = initChild(data, ns) as RecordAny;
+    if (!Array.isArray(parent)) {
+      // initChild 建了 {}，但本应是 []（因为最终 key 是数字索引）。
+      // 把父节点（ns 末段指向的容器）替换为数组。
+      const grandKey = ns[ns.length - 1] as string;
+      const grand = ns.length > 1 ? (initChild(data, ns.slice(0, -1)) as RecordAny) : data;
+      const arr: unknown[] = [];
+      (grand as RecordAny)[grandKey] = arr;
+      (arr as RecordAny)[key] = v;
+      return v;
+    }
+    (parent as RecordAny)[key] = v;
+    return v;
+  }
   const ret = ns.length > 0 ? initChild(data, ns) : data;
-  ret[key] = v;
+  (ret as RecordAny)[key] = v;
   return v;
 };

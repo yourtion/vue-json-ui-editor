@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: ^2.3.2
+        version: 2.3.2(vue@3.5.21(typescript@5.6.2))
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.2.0

@@ -12,10 +12,17 @@
       <el-card class="box-card">
         <template #header>
           <div class="clearfix">
-            <span>Model</span>
+            <span>Live Data</span>
           </div>
         </template>
-        <pre class="json">{{ jsonString }}</pre>
+        <el-tabs v-model="dataTab">
+          <el-tab-pane label="Model" name="model">
+            <pre class="json">{{ jsonString }}</pre>
+          </el-tab-pane>
+          <el-tab-pane label="Schema" name="schema">
+            <pre class="json">{{ schemaString }}</pre>
+          </el-tab-pane>
+        </el-tabs>
       </el-card>
       <br />
       <el-card class="box-card">
@@ -34,10 +41,27 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, h } from 'vue';
 import JsonEditor from '../../src/JsonEditor.vue';
-import { ElOption as Option } from 'element-plus';
+import { ElOption as Option, ElButton, ElIcon } from 'element-plus';
+import { Plus, Delete } from '@element-plus/icons-vue';
 import newsletterSchema from '../schema/newsletter.json';
+
+// object 数组增删行按钮：圆形图标按钮（+ / 回收站），紧凑不抢字段空间
+const AddIconButton = {
+  render() {
+    return h(ElButton, { circle: true, size: 'small', type: 'primary' }, () =>
+      h(ElIcon, () => h(Plus)),
+    );
+  },
+};
+const RemoveIconButton = {
+  render() {
+    return h(ElButton, { circle: true, size: 'small', type: 'danger', plain: true }, () =>
+      h(ElIcon, () => h(Delete)),
+    );
+  },
+};
 
 // Configure JsonEditor components
 JsonEditor.setComponent('form', 'el-form', ({ vm }) => {
@@ -79,8 +103,10 @@ JsonEditor.setComponent('form', 'el-form', ({ vm }) => {
 });
 
 // http://element.eleme.io/#/en-US/component/form#validation
+// 注意：el-form-item 的标签文字来自 label prop（非默认插槽），回调须返回 label。
 JsonEditor.setComponent('label', 'el-form-item', ({ field }) => ({
   prop: field.name,
+  label: field.label,
 }));
 
 JsonEditor.setComponent('email', 'el-input');
@@ -96,6 +122,10 @@ JsonEditor.setComponent('select', 'el-select');
 JsonEditor.setComponent('switch', 'el-switch');
 JsonEditor.setComponent('color', 'el-color-picker');
 JsonEditor.setComponent('rate', 'el-rate');
+JsonEditor.setComponent('date', 'el-date-picker');
+// object 数组增删行按钮 → 圆形图标按钮（+ 添加 / 回收站删除）
+JsonEditor.setComponent('arrayadd', AddIconButton);
+JsonEditor.setComponent('arrayremove', RemoveIconButton);
 
 // You can also use the component object
 JsonEditor.setComponent('option', Option);
@@ -121,15 +151,26 @@ const model = ref({
   name: 'Yourtion',
   sub: {
     sEmail: 'yourtion@gmail.com',
+    sub2: {
+      contacts: [
+        { email: 'alice@example.com', role: 'admin' },
+      ],
+    },
   },
 });
 
 // Template ref
 const jsonEditorRef = ref();
 
+// 右侧 tab：Model / Schema 切换
+const dataTab = ref('model');
+
 // Computed property
 const jsonString = computed(() => {
   return JSON.stringify(model.value, null, 2).trim();
+});
+const schemaString = computed(() => {
+  return JSON.stringify(schema.value, null, 2).trim();
 });
 
 // Methods
@@ -187,5 +228,41 @@ small {
 
 .json {
   text-align: left;
+  max-height: 520px;
+  overflow: auto;
+  margin: 0;
+}
+
+/* object 数组增删行：行内字段横排，圆形删除按钮居右对齐 */
+.json-editor-array-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 4px 0 2px;
+}
+.json-editor-array-title {
+  font-weight: 600;
+  color: #303133;
+}
+.json-editor-array-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 8px 0;
+  padding: 10px;
+  background: #f5f6f8;
+  border-radius: 6px;
+}
+.json-editor-array-row-fields {
+  flex: 1;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.json-editor-array-row-fields .el-form-item {
+  margin-bottom: 0;
+}
+.json-editor-array-add {
+  margin-top: 6px;
 }
 </style>

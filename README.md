@@ -13,7 +13,7 @@
 
 A Vue 3 JSON Schema based form editor component. Edit JSON in UI form with JSON Schema and [element-plus](https://element-plus.org/), with full TypeScript support.
 
-![ScreenShot](screenshot.jpg)
+![ScreenShot](screenshot.png)
 
 ## Versions & Branches
 
@@ -104,6 +104,15 @@ Indicates that the form is not to be validated when submitted.
 - `input-wrapping-class` ***String*** (*optional*)
 Wraps each field's controls in a `<div class="...">`. Leave `undefined` to disable input wrapping.
 
+- `components` ***Object*** (*optional*) `default: undefined`
+Per-instance component overrides. When provided, these are merged over the global defaults registered via `JsonEditor.setComponent`, so multiple `<json-editor>` instances on the same page can each use a different UI library without polluting each other. Keys are element types (e.g. `text`, `select`, `form`, `label`); values may be a full `{ component, option }` config or a shorthand component name/object. Leave `undefined` to fall back to the global registry.
+
+```js
+// Two editors on the same page, each with its own text widget:
+<json-editor :schema="a" :components="{ text: CompA }" />
+<json-editor :schema="b" :components="{ text: CompB }" />
+```
+
 ## events
 
 - `update:modelValue` Emitted (for `v-model`) whenever a field value changes.
@@ -139,6 +148,12 @@ Set an error message (rendered via the `error` component type).
 - `clearErrorMessage()`
 Clear the error message.
 
+- `getFields()`
+Return the current parsed field tree (including `$sub` containers for nested objects).
+
+- `vm`
+The reactive view-model (`{ model, fields, error }`), for advanced consumers and option-callback access.
+
 ## static API
 
 - `JsonEditor.setComponent(type, component, option?)`
@@ -150,12 +165,57 @@ JsonEditor.setComponent('form', 'el-form', ({ vm }) => ({ model: vm.model, rules
 JsonEditor.setComponent('error', 'el-alert', ({ vm }) => ({ type: 'error', title: vm.error }));
 ```
 
+> **Note on `label` with element-plus:** `el-form-item` reads its label text from the `label` prop (not the default slot), so the `label` registration callback must return `label: field.label` in addition to `prop: field.name`. See [example/components/Subscription.vue](example/components/Subscription.vue).
+
+### Wiring specific widgets via schema `attrs`
+
+The widget for a field is chosen by `attrs.type` in its schema property (the editor reads `schema.attrs` as the field descriptor). Register the type once with `setComponent`, then drive it from the schema:
+
+```js
+JsonEditor.setComponent('switch', 'el-switch');
+JsonEditor.setComponent('date', 'el-date-picker');
+// schema:
+{ active: { type: 'boolean', attrs: { type: 'switch' } } }
+{ createdAt: { type: 'string', format: 'date-time', attrs: { type: 'date' } } }
+```
+
+### Schema features
+
+- `disabled: true` and `readOnly: true` on a property disable/readonly the rendered input (readOnly also implies disabled).
+- Nested objects (`type: 'object'` with `properties`) render in a sub-container with the object's `title` (`.sub-title`) and `description` (`.sub-description`).
+- Object arrays (`type: 'array'` with `items: { type: 'object', properties }`) render as an editable list of sub-form rows. Each array renders a header (field label + add button, `.json-editor-array-header`) and one row per item (`.json-editor-array-row` with the item's sub-fields + a remove button). The add/remove buttons are registered via the `arrayadd` / `arrayremove` component types (default native `<button>`; register as `el-button` / icon buttons for UI library styling — see [example/components/Subscription.vue](example/components/Subscription.vue)). Arrays work at any nesting depth, including inside nested objects.
+- Choice arrays (`array` + `enum`/`oneOf`/`anyOf`) render as a single `select` / radio group / checkbox group.
+
+### Advanced: reusing the array renderer
+
+The object-array add/remove logic is extracted into a standalone, framework-agnostic module so it can be reused or unit-tested in isolation:
+
+```ts
+import { createArrayRenderer, type ArrayRendererDeps } from 'vue-json-ui-editor';
+
+const renderer = createArrayRenderer({
+  model, onChange, getComp, resolveComp, elementOptions, wrapChild, renderInput,
+} satisfies ArrayRendererDeps);
+renderer.render(field, fieldName);   // → vnode[] for the whole array (header + rows)
+renderer.addRow(fieldName);
+renderer.removeRow(fieldName, index);
+```
+
+`ArrayRendererDeps` declares exactly what the renderer needs (a reactive `model`, an `onChange` notifier, and the component-resolution helpers), so it isn't coupled to `JsonEditor`'s setup closure.
+
 ## TypeScript
 
 This package ships with bundled type declarations. You can import types directly:
 
 ```ts
 import JsonEditor, { type JsonSchema } from 'vue-json-ui-editor';
+// newly exported types (v3.1+):
+import type {
+  JsonEditorStatic,   // the setComponent static method signature
+  JsonEditorInstance, // exposed instance methods (form/validate/reset/getFields/vm)
+  ComponentConfig, OptionContext, VmContext, ComponentsMap,
+  ArrayRendererDeps,  // for createArrayRenderer
+} from 'vue-json-ui-editor';
 ```
 
 ## Development

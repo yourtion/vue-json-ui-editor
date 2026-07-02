@@ -1,6 +1,7 @@
 <script lang="ts">
 import {
   type Component,
+  computed,
   defineComponent,
   h,
   onMounted,
@@ -9,36 +10,22 @@ import {
   resolveComponent,
   watch,
 } from "vue";
+import { type ArrayRendererDeps, createArrayRenderer } from "./array-renderer";
 import { loadFields } from "./parser";
-import type { Fields, FormField, FormFieldItem, JsonSchema } from "./types";
+import type {
+  ComponentConfig,
+  ComponentOption,
+  ComponentsMap,
+  Fields,
+  FormField,
+  FormFieldItem,
+  JsonSchema,
+  OptionContext,
+  VmContext,
+} from "./types";
 import { deepClone, getChild, initChild } from "./utils";
 
 type RecordAny = Record<string, any>;
-
-interface ComponentOption {
-  native?: boolean;
-  type?: string;
-  label?: string;
-  disableWrappingLabel?: boolean;
-  [key: string]: unknown;
-}
-
-interface ComponentConfig {
-  component: string | Component;
-  option: ComponentOption | ((ctx: OptionContext) => RecordAny);
-}
-
-interface OptionContext {
-  vm: VmContext;
-  field: FormField;
-  item: Record<string, unknown>;
-}
-
-interface VmContext {
-  model: RecordAny;
-  fields: Fields;
-  error: string | null;
-}
 
 const nativeOption: ComponentOption = { native: true };
 const components: Record<string, ComponentConfig> = {
@@ -60,6 +47,12 @@ const components: Record<string, ComponentConfig> = {
   textarea: { component: "textarea", option: nativeOption },
   radiogroup: { component: "div", option: nativeOption },
   checkboxgroup: { component: "div", option: nativeOption },
+  // object 数组增删行按钮（默认原生 <button>；注册为 el-button 即可获得 UI 库样式）
+  arrayadd: { component: "button", option: { ...nativeOption, type: "button", label: "Add" } },
+  arrayremove: {
+    component: "button",
+    option: { ...nativeOption, type: "button", label: "Remove" },
+  },
 };
 const defaultInput: ComponentConfig = { component: "input", option: nativeOption };
 const defaultGroup: ComponentConfig = { component: "div", option: nativeOption };
@@ -222,6 +215,15 @@ const JsonEditor = defineComponent({
      * Define the inputs wrapping class. Leave `undefined` to disable input wrapping.
      */
     inputWrappingClass: { type: String, default: undefined },
+    /**
+     * Per-instance component overrides. When provided, these are merged over the
+     * global defaults (registered via `JsonEditor.setComponent`), so multiple
+     * `<json-editor>` instances on the same page can each use a different UI lib
+     * without polluting each other. Keys are element types
+     * (e.g. `text`, `select`, `form`, `label`), values are `ComponentConfig`.
+     * Leave `undefined` to fall back to the global registry (backwards compatible).
+     */
+    components: { type: Object as () => ComponentsMap, default: undefined },
   },
   emits: ["update:modelValue", "change", "submit", "invalid"],
   setup(props, { emit, slots, expose }) {
@@ -233,6 +235,30 @@ const JsonEditor = defineComponent({
     const model = reactive(props.modelValue || {}) as RecordAny;
     const defaultModel = deepClone(props.modelValue || {}) as RecordAny;
     let fields: Fields = {};
+
+    // --- per-instance components --------------------------------------
+    // 传 components prop 时浅合并到全局默认（prop 覆盖）；不传则回退全局。
+    // resolveComp/elementOptions 等所有 render 路径用此值，实现多实例隔离。
+    // prop 值可简写为组件名/组件对象（与 setComponent 一致），这里归一化为 ComponentConfig。
+    const normalizeComp = (
+      v: ComponentConfig | string | Component | undefined,
+    ): ComponentConfig | undefined => {
+      if (v === undefined) return undefined;
+      if (typeof v === "string" || (typeof v === "object" && v !== null && !("option" in v))) {
+        return { component: v as string | Component, option: {} };
+      }
+      return v as ComponentConfig;
+    };
+    const resolvedComponents = computed<Record<string, ComponentConfig>>(() => {
+      if (!props.components) return components;
+      const merged: Record<string, ComponentConfig> = { ...components };
+      for (const [k, v] of Object.entries(props.components)) {
+        const norm = normalizeComp(v);
+        if (norm) merged[k] = norm;
+      }
+      return merged;
+    });
+    const getComp = (key: string): ComponentConfig | undefined => resolvedComponents.value[key];
     const error = ref<string | null>(null);
 
     // `formRef` holds the rendered <form> component instance (or DOM node when
@@ -298,11 +324,12 @@ const JsonEditor = defineComponent({
     // no domProps/attrs split like Vue 2; everything flattens onto the data
     // object and Vue's fallthrough handles native attrs vs component props.
     const elementOptions = (
-      element: ComponentConfig,
+      element: ComponentConfig | undefined,
       extendingOptions: RecordAny = {},
       field: FormField = {} as FormField,
       item: RecordAny = {},
     ): RecordAny => {
+      if (!element) return { ...extendingOptions };
       const elementProps =
         typeof element.option === "function"
           ? element.option
@@ -317,15 +344,15 @@ const JsonEditor = defineComponent({
     // component without an explicit option (e.g. setComponent('option', ElOption))
     // is treated as non-native and its children must go through the default slot.
     // Only the built-in `components` map sets native: true explicitly.
-    const isNativeElement = (element: ComponentConfig): boolean => {
-      if (typeof element.option === "function") return false;
+    const isNativeElement = (element: ComponentConfig | undefined): boolean => {
+      if (!element || typeof element.option === "function") return false;
       return element.option.native === true;
     };
 
     // Whether an element is effectively native: either explicitly flagged
     // native in its option, or registered as a known HTML tag string.
-    const isEffectivelyNative = (element: ComponentConfig): boolean => {
-      if (typeof element.option === "function") return false;
+    const isEffectivelyNative = (element: ComponentConfig | undefined): boolean => {
+      if (!element || typeof element.option === "function") return false;
       if (element.option.native === true) return true;
       return typeof element.component === "string" && NATIVE_HTML_TAGS.has(element.component);
     };
@@ -335,7 +362,7 @@ const JsonEditor = defineComponent({
     // and other Vue 3 UI libs expect for render-function usage — a slots
     // object does not always work because their internals resolve the default
     // slot via normalizedChildren which prefers a raw function child).
-    const wrapChildren = (element: ComponentConfig, children: any[]): any => {
+    const wrapChildren = (element: ComponentConfig | undefined, children: any[]): any => {
       if (children.length === 0) return undefined;
       if (isEffectivelyNative(element)) return children;
       return () => children;
@@ -343,7 +370,7 @@ const JsonEditor = defineComponent({
 
     // Wrap a single child (string/vnode) for h(): same native vs component
     // distinction as wrapChildren, but for a scalar child (e.g. option label).
-    const wrapChild = (element: ComponentConfig, child: any): any => {
+    const wrapChild = (element: ComponentConfig | undefined, child: any): any => {
       if (child === undefined || child === null) return undefined;
       if (isEffectivelyNative(element)) return child;
       return () => child;
@@ -360,7 +387,8 @@ const JsonEditor = defineComponent({
     // string components via resolveComponent() at render time — unless the
     // string is a known native HTML tag (h2, small, ...), in which case it is
     // passed through directly.
-    const resolveComp = (element: ComponentConfig): string | Component => {
+    const resolveComp = (element: ComponentConfig | undefined): string | Component => {
+      if (!element) return "div";
       const comp = element.component;
       if (typeof comp !== "string") return comp;
       if (isNativeElement(element)) return comp;
@@ -379,8 +407,32 @@ const JsonEditor = defineComponent({
       emitting = false;
     };
 
+    // --- object 数组增删行（独立模块，deps 注入）-----------------------
+    // renderer 与 renderInput 互递归：renderer.render 调 renderInput 渲染行内字段，
+    // renderInput 调 renderer.render 处理 arrayitems。故先建 mutable deps，
+    // renderer 先创建，renderInput 定义后回填到 deps.renderInput。
+    const arrayDeps = {
+      model,
+      onChange: () => {
+        emitting = true;
+        emit("update:modelValue", model);
+        emitting = false;
+      },
+      getComp,
+      resolveComp,
+      elementOptions,
+      wrapChild,
+      // renderInput 占位，下方定义后回填
+      renderInput: (_f: FormField, _n: string): unknown[] => [],
+    } as ArrayRendererDeps;
+    const arrayRenderer = createArrayRenderer(arrayDeps);
+
     // --- render: per-field input vnode ---------------------------------
     const renderInput = (field: FormField, fieldName: string) => {
+      // object 数组（items: {type:object}）：渲染可增删行的子表单列表
+      if (field.type === "arrayitems" && field.itemsSchema) {
+        return arrayRenderer.render(field, fieldName);
+      }
       const fieldValue = getChild(model, fieldName.split("."));
       if (!field.value) {
         field.value = fieldValue;
@@ -392,8 +444,8 @@ const JsonEditor = defineComponent({
       const element: ComponentConfig = field.component
         ? customComponent!
         : Object.prototype.hasOwnProperty.call(field, "items") && field.type !== "select"
-          ? components[`${field.type}group`] || defaultGroup
-          : components[field.type] || defaultInput;
+          ? getComp(`${field.type}group`) || defaultGroup
+          : getComp(field.type) || defaultInput;
 
       const children: any[] = [];
       const handleInput = (event: any) => {
@@ -415,6 +467,11 @@ const JsonEditor = defineComponent({
         },
         ...elementOptions(element, {}, field, {}),
       };
+      // disabled / readOnly 透传：parser 已解析到 field，这里传给渲染组件
+      // （el-input 的 disabled、原生 input 的 disabled/readonly）。
+      // 条件挂载，避免给原生元素传 undefined。
+      if (field.disabled) baseInputData.disabled = true;
+      if (field.readOnly) baseInputData.readonly = true;
 
       // Vue 2 element-ui bound via `value` + `input` event. Vue 3 element-plus
       // (and most v3 UI libs) bind via `modelValue` prop + `update:modelValue`
@@ -445,17 +502,12 @@ const JsonEditor = defineComponent({
             const items = field.items as FormFieldItem[];
             items.forEach((item: FormFieldItem) => {
               const itemRecord = item as unknown as RecordAny;
-              const itemData = elementOptions(
-                components[field.type],
-                itemRecord,
-                field,
-                itemRecord,
-              );
+              const itemData = elementOptions(getComp(field.type), itemRecord, field, itemRecord);
               children.push(
                 h(
-                  resolveComp(components[field.type]),
+                  resolveComp(getComp(field.type)),
                   itemData,
-                  wrapChild(components[field.type], item.label),
+                  wrapChild(getComp(field.type), item.label),
                 ),
               );
             });
@@ -463,15 +515,15 @@ const JsonEditor = defineComponent({
           break;
         case "select":
           if (!field.required) {
-            children.push(h(resolveComp(components.option)));
+            children.push(h(resolveComp(getComp("option"))));
           }
           (field.items as FormFieldItem[]).forEach((opt: FormFieldItem) => {
-            const optData = elementOptions(components.option, { value: opt.value }, field, {});
+            const optData = elementOptions(getComp("option"), { value: opt.value }, field, {});
             children.push(
               h(
-                resolveComp(components.option),
+                resolveComp(getComp("option")),
                 { value: opt.value, ...optData },
-                wrapChild(components.option, opt.label),
+                wrapChild(getComp("option"), opt.label),
               ),
             );
           });
@@ -486,9 +538,10 @@ const JsonEditor = defineComponent({
       const formControlsNodes: any[] = [];
       const wrapLabel = field.label && !nativeOption.disableWrappingLabel;
       if (wrapLabel) {
-        const labelData = elementOptions(components.label, {}, field, {});
+        const labelComp = getComp("label");
+        const labelData = elementOptions(labelComp, {}, field, {});
         const labelNodes: any[] = [];
-        if (isNativeElement(components.label)) {
+        if (isNativeElement(labelComp)) {
           labelNodes.push(
             h("span", { "data-required-field": field.required ? "true" : "false" }, field.label),
           );
@@ -499,7 +552,7 @@ const JsonEditor = defineComponent({
           labelNodes.push(h("small", field.description));
         }
         formControlsNodes.push(
-          h(resolveComp(components.label), labelData, wrapChildren(components.label, labelNodes)),
+          h(resolveComp(labelComp), labelData, wrapChildren(labelComp, labelNodes)),
         );
       } else {
         formControlsNodes.push(inputElement);
@@ -516,6 +569,8 @@ const JsonEditor = defineComponent({
       }
       return formControlsNodes;
     };
+    // 回填：renderInput 与 arrayRenderer 互递归，定义完成后注入 deps
+    arrayDeps.renderInput = renderInput;
 
     // --- render: two-pass traversal (createForm -> createNode) ---------
     // Pass 1: render each field into a vnode and stash it, keyed by the full
@@ -547,6 +602,9 @@ const JsonEditor = defineComponent({
         if ((fieldsObj as RecordAny).$title) {
           nodes.push(h("div", { class: "sub-title" }, (fieldsObj as RecordAny).$title));
         }
+        if ((fieldsObj as RecordAny).$description) {
+          nodes.push(h("div", { class: "sub-description" }, (fieldsObj as RecordAny).$description));
+        }
         Object.keys(fieldsObj).forEach((key) => {
           if (key.indexOf("$") === 0) return;
           const field = fieldsObj[key] as FormField;
@@ -573,58 +631,58 @@ const JsonEditor = defineComponent({
 
       const nodes: any[] = [];
       if (props.schema.title) {
-        const titleData = elementOptions(components.title, {});
-        nodes.push(h(resolveComp(components.title), titleData, props.schema.title));
+        const titleComp = getComp("title");
+        const titleData = elementOptions(titleComp, {});
+        nodes.push(h(resolveComp(titleComp), titleData, props.schema.title));
       }
       if (props.schema.description) {
-        const descData = elementOptions(components.description, {});
-        nodes.push(h(resolveComp(components.description), descData, props.schema.description));
+        const descComp = getComp("description");
+        const descData = elementOptions(descComp, {});
+        nodes.push(h(resolveComp(descComp), descData, props.schema.description));
       }
       if (error.value) {
-        const errorData = elementOptions(components.error, {});
+        const errorComp = getComp("error");
+        const errorData = elementOptions(errorComp, {});
         // When error is a native element (default <div>), the error text goes
         // into children; when it's a registered component (e.g. ElAlert), the
         // text is conveyed via a callback option prop (e.g. title: vm.error).
-        const isErrorNative = isNativeElement(components.error);
+        const isErrorNative = isNativeElement(errorComp);
         const errorChildren: any[] = isErrorNative ? [error.value] : [];
-        nodes.push(
-          h(resolveComp(components.error), errorData, isErrorNative ? errorChildren : undefined),
-        );
+        nodes.push(h(resolveComp(errorComp), errorData, isErrorNative ? errorChildren : undefined));
       }
 
       const allFormNodes: any[] = [];
       allFormNodes.push(renderFormTree());
 
       // --- submit button / slot --------------------------------------
-      const labelData = elementOptions(components.label, {});
+      const labelComp = getComp("label");
+      const labelData = elementOptions(labelComp, {});
       const slotVnodes = slots.default ? slots.default() : null;
       if (slotVnodes && slotVnodes.length) {
         allFormNodes.push(
-          h(resolveComp(components.label), labelData, wrapChildren(components.label, slotVnodes)),
+          h(resolveComp(labelComp), labelData, wrapChildren(labelComp, slotVnodes)),
         );
       } else {
-        const buttonData = elementOptions(components.button, {});
+        const buttonComp = getComp("button");
+        const buttonData = elementOptions(buttonComp, {});
         const buttonElement = h(
-          resolveComp(components.button),
+          resolveComp(buttonComp),
           buttonData,
-          (components.button.option as ComponentOption).label,
+          (buttonComp?.option as ComponentOption).label,
         );
         allFormNodes.push(
-          h(
-            resolveComp(components.label),
-            labelData,
-            wrapChildren(components.label, [buttonElement]),
-          ),
+          h(resolveComp(labelComp), labelData, wrapChildren(labelComp, [buttonElement])),
         );
       }
 
-      const formData = elementOptions(components.form, {
+      const formComp = getComp("form");
+      const formData = elementOptions(formComp, {
         autocomplete: props.autoComplete,
         novalidate: props.noValidate,
       });
       nodes.push(
         h(
-          resolveComp(components.form),
+          resolveComp(formComp),
           {
             ref: formRef,
             onSubmit: (event: Event) => {
@@ -638,7 +696,7 @@ const JsonEditor = defineComponent({
             },
             ...formData,
           },
-          wrapChildren(components.form, allFormNodes),
+          wrapChildren(formComp, allFormNodes),
         ),
       );
       return h("div", nodes);
@@ -716,16 +774,16 @@ const JsonEditor = defineComponent({
 });
 
 export default JsonEditor;
+
 // Static API: register a component for a field/element type. Mirrors master's
 // setComponent(type, component, option?). `option` may be a plain object or a
 // factory callback ({ vm, field, item }) => propsObject.
-// Usage: (JsonEditor as any).setComponent('email', ElInput)
-//        (JsonEditor as any).setComponent('form', ElForm, ({ vm }) => ({ ... }))
-(JsonEditor as any).setComponent = (
-  type: string,
-  component: string | Component,
-  option: ComponentOption | ((ctx: OptionContext) => RecordAny) = {},
-) => {
+// Usage: JsonEditor.setComponent('email', ElInput)
+//        JsonEditor.setComponent('form', ElForm, ({ vm }) => ({ ... }))
+interface JsonEditorStatic {
+  setComponent: (type: string, component: string | Component, option?: ComponentOption) => void;
+}
+(JsonEditor as unknown as JsonEditorStatic).setComponent = (type, component, option = {}) => {
   components[type] = { component, option };
 };
 </script>
