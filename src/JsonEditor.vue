@@ -10,6 +10,7 @@ import {
   resolveComponent,
   watch,
 } from "vue";
+import { type ArrayRendererDeps, createArrayRenderer } from "./array-renderer";
 import { loadFields } from "./parser";
 import type {
   ComponentConfig,
@@ -22,7 +23,7 @@ import type {
   OptionContext,
   VmContext,
 } from "./types";
-import { deepClone, getChild, initChild, setVal } from "./utils";
+import { deepClone, getChild, initChild } from "./utils";
 
 type RecordAny = Record<string, any>;
 
@@ -406,98 +407,31 @@ const JsonEditor = defineComponent({
       emitting = false;
     };
 
-    // --- object 数组增删行 ---------------------------------------------
-    // 对 schema.items.type==='object' 的数组字段，渲染每行为子表单 + 删除按钮，
-    // 列表底部「添加」按钮。每行字段通过 loadFields 递归 itemsSchema 渲染，
-    // namespaced 到 `${fieldName}.${index}.`（getChild/setVal 已支持数组索引路径）。
-    const ensureArray = (fieldName: string): unknown[] => {
-      // fieldName 按点拆分，支持嵌套 object 内的 array（如 sub.sub2.contacts）
-      const ns = fieldName.split(".");
-      const cur = getChild(model, ns);
-      if (Array.isArray(cur)) return cur;
-      const arr: unknown[] = [];
-      setVal(model, ns, arr);
-      return arr;
-    };
-    const addRow = (fieldName: string) => {
-      const arr = ensureArray(fieldName);
-      arr.push({});
-      emitting = true;
-      emit("update:modelValue", model);
-      emitting = false;
-    };
-    const removeRow = (fieldName: string, index: number) => {
-      const arr = ensureArray(fieldName);
-      arr.splice(index, 1);
-      emitting = true;
-      emit("update:modelValue", model);
-      emitting = false;
-    };
-
-    const renderArrayItems = (field: FormField, fieldName: string): any[] => {
-      const arr = ensureArray(fieldName);
-      const addComp = getComp("arrayadd");
-      const removeComp = getComp("arrayremove");
-      // 按钮文字：从 option.label 取（默认 Add/Remove，用户可 setComponent 覆盖）
-      const addLabel = (addComp?.option as ComponentOption)?.label ?? "Add";
-      const removeLabel = (removeComp?.option as ComponentOption)?.label ?? "Remove";
-      const rows = arr.map((_, i) => {
-        // 深拷贝 itemsSchema 避免污染原 schema（loadFields 会 mutate property.name）
-        const itemSchema = deepClone(field.itemsSchema as JsonSchema);
-        const rowFields: Fields = {};
-        // loadFields 用 sub 前缀：fieldName 按点拆分（支持嵌套 object 内的 array，
-        // 如 sub.sub2.contacts → ["sub","sub2","contacts"]），追加 index 段。
-        loadFields({ value: model, fields: rowFields } as any, itemSchema, rowFields, [
-          ...fieldName.split("."),
-          String(i),
-        ]);
-        // 渲染该行每个字段（递归 renderInput，fieldName 已含 index 前缀）
-        const cells: any[] = [];
-        for (const k of Object.keys(rowFields)) {
-          if (k.indexOf("$") === 0) continue;
-          const f = rowFields[k] as FormField;
-          if (f && f.name) cells.push(renderInput(f, f.name)[0]);
-        }
-        const removeBtnData = elementOptions(removeComp, {}, field, {});
-        return h("div", { class: "json-editor-array-row" }, [
-          h("div", { class: "json-editor-array-row-fields" }, cells),
-          h(
-            resolveComp(removeComp),
-            {
-              class: "json-editor-array-remove",
-              onClick: () => removeRow(fieldName, i),
-              ...removeBtnData,
-            },
-            wrapChild(removeComp, removeLabel),
-          ),
-        ]);
-      });
-      const addBtnData = elementOptions(addComp, {}, field, {});
-      return [
-        h("div", { class: "json-editor-array" }, [
-          // header：标题（field.label）左 + 添加按钮右
-          h("div", { class: "json-editor-array-header" }, [
-            h("span", { class: "json-editor-array-title" }, field.label || ""),
-            h(
-              resolveComp(addComp),
-              {
-                class: "json-editor-array-add",
-                onClick: () => addRow(fieldName),
-                ...addBtnData,
-              },
-              wrapChild(addComp, addLabel),
-            ),
-          ]),
-          ...rows,
-        ]),
-      ];
-    };
+    // --- object 数组增删行（独立模块，deps 注入）-----------------------
+    // renderer 与 renderInput 互递归：renderer.render 调 renderInput 渲染行内字段，
+    // renderInput 调 renderer.render 处理 arrayitems。故先建 mutable deps，
+    // renderer 先创建，renderInput 定义后回填到 deps.renderInput。
+    const arrayDeps = {
+      model,
+      onChange: () => {
+        emitting = true;
+        emit("update:modelValue", model);
+        emitting = false;
+      },
+      getComp,
+      resolveComp,
+      elementOptions,
+      wrapChild,
+      // renderInput 占位，下方定义后回填
+      renderInput: (_f: FormField, _n: string): unknown[] => [],
+    } as ArrayRendererDeps;
+    const arrayRenderer = createArrayRenderer(arrayDeps);
 
     // --- render: per-field input vnode ---------------------------------
     const renderInput = (field: FormField, fieldName: string) => {
       // object 数组（items: {type:object}）：渲染可增删行的子表单列表
       if (field.type === "arrayitems" && field.itemsSchema) {
-        return renderArrayItems(field, fieldName);
+        return arrayRenderer.render(field, fieldName);
       }
       const fieldValue = getChild(model, fieldName.split("."));
       if (!field.value) {
@@ -635,6 +569,8 @@ const JsonEditor = defineComponent({
       }
       return formControlsNodes;
     };
+    // 回填：renderInput 与 arrayRenderer 互递归，定义完成后注入 deps
+    arrayDeps.renderInput = renderInput;
 
     // --- render: two-pass traversal (createForm -> createNode) ---------
     // Pass 1: render each field into a vnode and stash it, keyed by the full
