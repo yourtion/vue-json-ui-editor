@@ -183,8 +183,25 @@ JsonEditor.setComponent('date', 'el-date-picker');
 
 - `disabled: true` and `readOnly: true` on a property disable/readonly the rendered input (readOnly also implies disabled).
 - Nested objects (`type: 'object'` with `properties`) render in a sub-container with the object's `title` (`.sub-title`) and `description` (`.sub-description`).
-- Object arrays (`type: 'array'` with `items: { type: 'object', properties }`) render as an editable list of sub-form rows with add/remove buttons.
+- Object arrays (`type: 'array'` with `items: { type: 'object', properties }`) render as an editable list of sub-form rows. Each array renders a header (field label + add button, `.json-editor-array-header`) and one row per item (`.json-editor-array-row` with the item's sub-fields + a remove button). The add/remove buttons are registered via the `arrayadd` / `arrayremove` component types (default native `<button>`; register as `el-button` / icon buttons for UI library styling — see [example/components/Subscription.vue](example/components/Subscription.vue)). Arrays work at any nesting depth, including inside nested objects.
 - Choice arrays (`array` + `enum`/`oneOf`/`anyOf`) render as a single `select` / radio group / checkbox group.
+
+### Advanced: reusing the array renderer
+
+The object-array add/remove logic is extracted into a standalone, framework-agnostic module so it can be reused or unit-tested in isolation:
+
+```ts
+import { createArrayRenderer, type ArrayRendererDeps } from 'vue-json-ui-editor';
+
+const renderer = createArrayRenderer({
+  model, onChange, getComp, resolveComp, elementOptions, wrapChild, renderInput,
+} satisfies ArrayRendererDeps);
+renderer.render(field, fieldName);   // → vnode[] for the whole array (header + rows)
+renderer.addRow(fieldName);
+renderer.removeRow(fieldName, index);
+```
+
+`ArrayRendererDeps` declares exactly what the renderer needs (a reactive `model`, an `onChange` notifier, and the component-resolution helpers), so it isn't coupled to `JsonEditor`'s setup closure.
 
 ## TypeScript
 
@@ -192,6 +209,13 @@ This package ships with bundled type declarations. You can import types directly
 
 ```ts
 import JsonEditor, { type JsonSchema } from 'vue-json-ui-editor';
+// newly exported types (v3.1+):
+import type {
+  JsonEditorStatic,   // the setComponent static method signature
+  JsonEditorInstance, // exposed instance methods (form/validate/reset/getFields/vm)
+  ComponentConfig, OptionContext, VmContext, ComponentsMap,
+  ArrayRendererDeps,  // for createArrayRenderer
+} from 'vue-json-ui-editor';
 ```
 
 ## Development

@@ -13,3 +13,6 @@ export { JsonEditorWithStatic as JsonEditor };
 // Export types
 export * from "./types";
 export type { JsonEditorInstance, JsonEditorStatic } from "./types/static";
+// array renderer（独立模块，可单独复用）
+export { createArrayRenderer } from "./array-renderer";
+export type { ArrayRendererDeps, ArrayRenderer } from "./array-renderer";
