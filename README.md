@@ -181,10 +181,54 @@ JsonEditor.setComponent('date', 'el-date-picker');
 
 ### Schema features
 
+This is a **form renderer for a documented JSON Schema subset**, not a JSON Schema
+validator or a complete implementation of any draft. See
+[the support matrix and MCP/Agent integration guide](SCHEMA_SUPPORT.md) before
+using arbitrary tool schemas. `oneOf` / `anyOf` choice lists in the historical
+examples are UI extensions, **not standard schema composition**.
+
 - `disabled: true` and `readOnly: true` on a property disable/readonly the rendered input (readOnly also implies disabled).
 - Nested objects (`type: 'object'` with `properties`) render in a sub-container with the object's `title` (`.sub-title`) and `description` (`.sub-description`).
 - Object arrays (`type: 'array'` with `items: { type: 'object', properties }`) render as an editable list of sub-form rows. Each array renders a header (field label + add button, `.json-editor-array-header`) and one row per item (`.json-editor-array-row` with the item's sub-fields + a remove button). The add/remove buttons are registered via the `arrayadd` / `arrayremove` component types (default native `<button>`; register as `el-button` / icon buttons for UI library styling — see [example/components/Subscription.vue](example/components/Subscription.vue)). Arrays work at any nesting depth, including inside nested objects.
 - Choice arrays (`array` + `enum`/`oneOf`/`anyOf`) render as a single `select` / radio group / checkbox group.
+
+### Immutable parsing and dynamic schemas
+
+```ts
+import { parseSchema, inspectSchema } from 'vue-json-ui-editor';
+
+const support = inspectSchema(tool.inputSchema);
+if (support.supported) {
+  const { model, fields } = parseSchema(tool.inputSchema, initialArguments);
+  // schema and initialArguments are unchanged; returned data is independent.
+} else {
+  // Show support.issues (schema JSON Pointers) and use a JSON editor.
+}
+```
+
+Parsing does not write `name`, `required`, or widget metadata into the schema.
+Frozen/shared schemas, defaults and `attrs` are safe to reuse across instances.
+The component watches reactive schema changes deeply: adding/removing properties,
+changing `required`, `visible`, `disabled`, `readOnly`, `enum`, or `attrs` updates the
+rendered controls. Existing model values are preserved; hiding/removing a control
+does not delete its value. Native numeric inputs and scalar enum choices preserve
+JSON number/boolean types. A cleared numeric input remains `''` until validation.
+
+`parseSchema` clones both inputs. The low-level internal `loadFields` API still
+initializes its target model/fields in place. The component retains its existing
+mutable `v-model` behavior; this release does not introduce an immutable model API.
+
+### MCP / Agent parameters
+
+Run `npm run dev` and open the **MCP / Agent** tab. The
+[working example](example/components/ToolParameters.vue) accepts MCP `inputSchema`
+and Agent `function.parameters`, renders the supported subset, and falls back to
+JSON for dynamic keys and unsupported constructs. Ajv validates the original
+schema before generating `{ name, arguments }`. It does not execute tools.
+
+Ajv is an example/test development dependency; the library does not bundle it.
+See [integration details](SCHEMA_SUPPORT.md#mcp--agent-接入) and the
+[prioritized iteration plan](ROADMAP.md).
 
 ### Advanced: reusing the array renderer
 
@@ -225,6 +269,7 @@ pnpm install      # install dependencies
 pnpm dev          # start the example app (Vite)
 pnpm build:lib    # build the publishable library bundle
 pnpm test         # run unit tests (Vitest)
+pnpm test:package # build + ESM/CommonJS/public TypeScript consumption checks
 pnpm check        # type-check + format + test
 ```
 

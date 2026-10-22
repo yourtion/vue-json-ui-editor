@@ -79,21 +79,14 @@ describe('JsonEditor - Interaction Tests', () => {
       },
     });
 
-    // active is the boolean field; master renders it as a native <input>
-    // (without an explicit type attr — type is conveyed via the registry).
-    // It is the third input in the form (name, email, active).
-    const inputs = wrapper.findAll('input');
-    const activeInput = inputs[2];
-    // Without a registered checkbox component, the boolean field behaves as a
-    // plain text input; setting its value emits update:modelValue with that
-    // value on the active key.
-    await activeInput.setValue('true');
+    const activeInput = wrapper.find('input[type="checkbox"]');
+    await activeInput.setValue(true);
 
     expect(wrapper.emitted('update:modelValue')).toBeTruthy();
 
     const emittedEvents = wrapper.emitted('update:modelValue');
     const emittedData = emittedEvents?.[emittedEvents.length - 1]?.[0];
-    expect(emittedData).toMatchObject({ active: 'true' });
+    expect(emittedData).toMatchObject({ active: true });
   });
 
   it('should emit input event when select value changes', async () => {

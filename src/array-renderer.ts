@@ -14,7 +14,7 @@ type Child = any;
 import { loadFields } from "./parser";
 import type { ComponentConfig, ComponentOption, Fields, FormField, JsonSchema } from "./types";
 import type { RecordAny } from "./utils";
-import { deepClone, getChild, setVal } from "./utils";
+import { getChild, setVal } from "./utils";
 
 /**
  * JsonEditor 注入给 array-renderer 的依赖。
@@ -100,25 +100,34 @@ export function createArrayRenderer(deps: ArrayRendererDeps): ArrayRenderer {
     const removeLabel = (removeComp?.option as ComponentOption)?.label ?? "Remove";
 
     const rows = arr.map((_, i) => {
-      // 深拷贝 itemsSchema 避免污染原 schema（loadFields 会 mutate property.name）
-      const itemSchema = deepClone(field.itemsSchema as JsonSchema);
+      const itemSchema = {
+        ...field.itemsSchema,
+        disabled: field.disabled || field.itemsSchema?.disabled,
+        readOnly: field.readOnly || field.itemsSchema?.readOnly,
+      } as JsonSchema;
       const rowFields: Fields = {};
       // loadFields 用 sub 前缀：fieldName 按点拆分（支持嵌套 object 内的 array），
       // 追加 index 段，使行内字段 name 为 `fieldName.i.key`。
-      loadFields({ value: model, fields: rowFields } as RecordAny, itemSchema, rowFields, [
-        ...fieldName.split("."),
-        String(i),
-      ]);
+      loadFields(model, itemSchema, rowFields, [...fieldName.split("."), String(i)]);
       // 渲染该行每个字段（递归 renderInput，fieldName 已含 index 前缀）
       const cells: Child[] = [];
-      for (const k of Object.keys(rowFields)) {
-        if (k.indexOf("$") === 0) continue;
-        const f = rowFields[k] as FormField;
-        if (f && f.name) {
-          const rendered = deps.renderInput(f, f.name) as unknown[];
-          if (rendered[0] !== undefined) cells.push(rendered[0]);
+      const renderFields = (fields: Fields) => {
+        for (const k of Object.keys(fields)) {
+          if (k.indexOf("$") === 0) continue;
+          const f = fields[k] as FormField;
+          if (f?.$sub) {
+            renderFields(f as unknown as Fields);
+            continue;
+          }
+          if (f && f.name) {
+            const rendered = deps.renderInput(f, f.name) as unknown[];
+            cells.push(...rendered);
+          }
         }
-      }
+      };
+      renderFields(rowFields);
+      const cannotRemove =
+        field.disabled || field.readOnly || arr.length <= Number(field.minItems ?? 0);
       const removeBtnData = elementOptions(removeComp, {}, field, {});
       return h("div", { class: "json-editor-array-row" }, [
         h("div", { class: "json-editor-array-row-fields" }, cells),
@@ -126,8 +135,11 @@ export function createArrayRenderer(deps: ArrayRendererDeps): ArrayRenderer {
           resolveComp(removeComp),
           {
             class: "json-editor-array-remove",
-            onClick: () => removeRow(fieldName, i),
+            onClick: () => {
+              if (!cannotRemove) removeRow(fieldName, i);
+            },
             ...removeBtnData,
+            disabled: cannotRemove,
           },
           wrapChild(removeComp, removeLabel),
         ),
@@ -135,6 +147,8 @@ export function createArrayRenderer(deps: ArrayRendererDeps): ArrayRenderer {
     });
 
     const addBtnData = elementOptions(addComp, {}, field, {});
+    const cannotAdd =
+      field.disabled || field.readOnly || arr.length >= Number(field.maxItems ?? Infinity);
     return [
       h("div", { class: "json-editor-array" }, [
         // header：标题（field.label）左 + 添加按钮右
@@ -144,8 +158,11 @@ export function createArrayRenderer(deps: ArrayRendererDeps): ArrayRenderer {
             resolveComp(addComp),
             {
               class: "json-editor-array-add",
-              onClick: () => addRow(fieldName),
+              onClick: () => {
+                if (!cannotAdd) addRow(fieldName);
+              },
               ...addBtnData,
+              disabled: cannotAdd,
             },
             wrapChild(addComp, addLabel),
           ),

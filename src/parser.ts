@@ -1,13 +1,13 @@
 // src/parser.ts
 import type { FormField, FormFieldItem, JsonSchema, JsonSchemaProperty } from "./types";
 import type { RecordAny } from "./utils";
-import { getChild, setVal } from "./utils";
+import { deepClone, getChild, setVal } from "./utils";
 
 const ARRAY_KEYWORDS = ["anyOf", "oneOf", "enum"] as const;
 
 function setCommonFields(schema: JsonSchemaProperty, field: FormField, schemaName: string) {
   field.value = Object.prototype.hasOwnProperty.call(schema, "default")
-    ? schema.default
+    ? deepClone(schema.default)
     : Object.prototype.hasOwnProperty.call(field, "value")
       ? field.value
       : "";
@@ -19,11 +19,12 @@ function setCommonFields(schema: JsonSchemaProperty, field: FormField, schemaNam
   // keys work without forcing consumers to change.
   field.title = schema.title || "";
   field.description = schema.description || "";
-  field.required = schema.required || false;
+  field.required = schema.required === true;
   // readOnly: JSON Schema 标准的只读标记。readOnly 同时隐含 disabled（只读字段不应可编辑）。
   field.readOnly = schema.readOnly || false;
   field.disabled = schema.disabled || schema.readOnly || false;
   field.name = schemaName;
+  field.inputAttrs = deepClone(schema.attrs || {});
 }
 
 function setFormValue(model: RecordAny, field: FormField) {
@@ -31,7 +32,7 @@ function setFormValue(model: RecordAny, field: FormField) {
   const vmValue = getChild(model, ns);
   if (model && vmValue === undefined) {
     // ensure parent exists and set value
-    setVal(model, ns, field.value);
+    setVal(model, ns, deepClone(field.value));
   }
 }
 
@@ -40,10 +41,11 @@ export const parseBoolean = (
   schema: JsonSchemaProperty,
   schemaName: string,
 ): FormField => {
-  const field: FormField = (schema.attrs || {}) as FormField;
+  const field = deepClone(schema.attrs || {}) as FormField;
   setCommonFields(schema, field, schemaName);
   if (!field.type) field.type = "checkbox";
   field.checked = schema.checked || false;
+  if (schema.default === undefined && field.value === "") field.value = field.checked;
   if (schema.name) {
     field.name = schemaName;
     setFormValue(model, field);
@@ -56,7 +58,7 @@ export const parseString = (
   schema: JsonSchemaProperty,
   schemaName: string,
 ): FormField => {
-  const field: FormField = (schema.attrs || {}) as FormField;
+  const field = deepClone(schema.attrs || {}) as FormField;
   if (schema.format) {
     switch (schema.format) {
       case "email":
@@ -86,8 +88,13 @@ export const parseString = (
     field.name = schemaName;
     setFormValue(model, field);
   }
-  if (schema.minLength) field.minlength = schema.minLength;
-  if (schema.maxLength) field.maxlength = schema.maxLength;
+  if (schema.minLength !== undefined) field.minlength = schema.minLength;
+  if (schema.maxLength !== undefined) field.maxlength = schema.maxLength;
+  if (schema.pattern !== undefined) field.pattern = schema.pattern;
+  if (schema.minimum !== undefined) field.min = schema.minimum;
+  if (schema.maximum !== undefined) field.max = schema.maximum;
+  if (schema.type === "integer") field.step = 1;
+  else if (schema.type === "number" && field.step === undefined) field.step = "any";
   return field;
 };
 
@@ -96,7 +103,7 @@ export const parseItems = (items: unknown[]): FormFieldItem[] => {
     if (typeof item !== "object" || item === null) {
       return { value: item, label: String(item) };
     }
-    return item as FormFieldItem;
+    return deepClone(item) as FormFieldItem;
   });
 };
 
@@ -105,7 +112,7 @@ export const parseArray = (
   schema: JsonSchemaProperty,
   schemaName: string,
 ): FormField => {
-  const field: FormField = (schema.attrs || {}) as FormField;
+  const field = deepClone(schema.attrs || {}) as FormField;
   setCommonFields(schema, field, schemaName);
   field.multiple = (schema.minItems || 0) > 1;
   field.items = [];
@@ -113,9 +120,13 @@ export const parseArray = (
   // 优先：object 数组（items: {type:object, properties}）→ 可增删行的子表单列表
   if (schema.items?.type === "object" && schema.items.properties) {
     field.type = "arrayitems";
-    field.itemsSchema = schema.items;
-    const cur = model ? (model as RecordAny)[schemaName] : undefined;
-    field.value = Array.isArray(cur) ? cur : [];
+    field.itemsSchema = deepClone(schema.items);
+    const cur = model ? getChild(model, schemaName.split(".")) : undefined;
+    field.value = deepClone(
+      Array.isArray(cur) ? cur : Array.isArray(field.value) ? field.value : [],
+    );
+    field.minItems = schema.minItems;
+    field.maxItems = schema.maxItems;
     if (schema.name) {
       field.name = schemaName;
       setFormValue(model, field);
@@ -128,12 +139,12 @@ export const parseArray = (
       switch (keyword) {
         case "enum":
           if (!field.type) field.type = "select";
-          field.value = field.value || "";
+          field.value = field.value ?? "";
           field.items = parseItems(schema[keyword as keyof JsonSchemaProperty] as unknown[]);
           break;
         case "oneOf":
           field.type = "radio";
-          field.value = field.value || "";
+          field.value = field.value ?? "";
           field.items = parseItems(schema[keyword as keyof JsonSchemaProperty] as unknown[]);
           break;
         case "anyOf":
@@ -156,12 +167,8 @@ export const parseArray = (
   return field;
 };
 
-// Overloaded function signatures.
-// loadFields is polymorphic: callers pass either a root-level JsonSchema
-// (`required: string[]`) or a field-level JsonSchemaProperty (`required:
-// boolean`), whose `required` shapes are incompatible by design — hence the
-// union. The implementation signature stays loosely typed so it can recurse
-// through both without forcing `as` at every internal call site.
+// Both signatures initialize the target model/field tree in place while
+// treating schema as read-only. Use parseSchema for an isolated model too.
 export function loadFields(
   vm: { value: RecordAny; fields: RecordAny },
   schema: JsonSchema | JsonSchemaProperty,
@@ -176,7 +183,13 @@ export function loadFields(vmOrModel: any, schema: any, fields?: RecordAny, sub?
   let model: RecordAny;
   let fieldsObj: RecordAny;
 
-  if (vmOrModel && typeof vmOrModel === "object" && "value" in vmOrModel && "fields" in vmOrModel) {
+  if (
+    fields === undefined &&
+    vmOrModel &&
+    typeof vmOrModel === "object" &&
+    "value" in vmOrModel &&
+    "fields" in vmOrModel
+  ) {
     // Old signature: loadFields(vm, schema)
     model = vmOrModel.value;
     fieldsObj = vmOrModel.fields;
@@ -187,51 +200,46 @@ export function loadFields(vmOrModel: any, schema: any, fields?: RecordAny, sub?
   }
   if (!schema || schema.visible === false) return;
 
-  // For root schema, process properties
-  if (schema.type === "object" && schema.properties && !sub) {
-    // Handle required fields at root level
-    if (schema.required && Array.isArray(schema.required)) {
-      for (const field of schema.required) {
-        if (schema.properties[field]) schema.properties[field].required = true;
-      }
-    }
-    for (const key in schema.properties) {
-      schema.properties[key].name = key;
-      loadFields(model, schema.properties[key], fieldsObj, [key]);
-    }
-    return;
-  }
-
   const schemaName = sub ? sub.join(".") : schema.name || "";
 
   switch (schema.type) {
     case "object":
       if (schema.properties) {
-        for (const key in schema.properties) {
-          schema.properties[key].name = key;
-          if (schema.required && Array.isArray(schema.required)) {
-            for (const field of schema.required) {
-              if (schema.properties[field]) schema.properties[field].required = true;
-            }
-          }
-          if (schema.name && !fieldsObj[schemaName]) {
-            fieldsObj[schemaName] = {
-              $sub: true,
-              $title: schema.title,
-              $description: schema.description,
-            };
-          }
+        const nested = sub && schema.name;
+        if (nested) {
+          fieldsObj[schemaName] = {
+            $sub: true,
+            $title: schema.title,
+            $description: schema.description,
+          };
+        }
+        for (const [key, property] of Object.entries(schema.properties)) {
+          const child = property as JsonSchemaProperty;
+          // Derive UI metadata on a fresh object. A nested object's required
+          // list belongs to its children and must never be replaced by true.
+          const childSchema = {
+            ...child,
+            name: key,
+            disabled: schema.disabled || child.disabled,
+            readOnly: schema.readOnly || child.readOnly,
+            required: Array.isArray(child.required)
+              ? child.required
+              : (Array.isArray(schema.required) && schema.required.includes(key)) || child.required,
+          };
           loadFields(
             model,
-            schema.properties[key],
-            schema.name ? (fieldsObj[schemaName] as RecordAny) : fieldsObj,
+            childSchema,
+            nested ? (fieldsObj[schemaName] as RecordAny) : fieldsObj,
             sub ? [...sub, key] : [key],
           );
         }
       }
       break;
     case "boolean":
-      if (schemaName) fieldsObj[schemaName] = parseBoolean(model, schema, schemaName);
+      if (schemaName)
+        fieldsObj[schemaName] = schema.enum
+          ? parseArray(model, schema, schemaName)
+          : parseBoolean(model, schema, schemaName);
       break;
     case "array":
       if (schemaName) fieldsObj[schemaName] = parseArray(model, schema, schemaName);
@@ -257,4 +265,12 @@ export function loadFields(vmOrModel: any, schema: any, fields?: RecordAny, sub?
     default:
       if (schemaName) fieldsObj[schemaName] = parseString(model, schema, schemaName);
   }
+}
+
+/** Parse without changing either input; low-level loadFields initializes its model in place. */
+export function parseSchema(schema: JsonSchema, value: RecordAny = {}) {
+  const model = deepClone(value);
+  const fields: RecordAny = {};
+  loadFields(model, schema, fields);
+  return { model, fields };
 }

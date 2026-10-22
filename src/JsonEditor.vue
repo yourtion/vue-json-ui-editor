@@ -8,6 +8,8 @@ import {
   reactive,
   ref,
   resolveComponent,
+  shallowRef,
+  toRaw,
   watch,
 } from "vue";
 import { type ArrayRendererDeps, createArrayRenderer } from "./array-renderer";
@@ -234,7 +236,7 @@ const JsonEditor = defineComponent({
     // used by reset().
     const model = reactive(props.modelValue || {}) as RecordAny;
     const defaultModel = deepClone(props.modelValue || {}) as RecordAny;
-    let fields: Fields = {};
+    const fields = shallowRef<Fields>({});
 
     // --- per-instance components --------------------------------------
     // 传 components prop 时浅合并到全局默认（prop 覆盖）；不传则回退全局。
@@ -270,9 +272,9 @@ const JsonEditor = defineComponent({
 
     // --- parser integration --------------------------------------------
     const reload = () => {
-      fields = {};
-      if (!props.schema) return;
-      loadFields(model, deepClone(props.schema) as JsonSchema, fields);
+      const next: Fields = {};
+      if (props.schema) loadFields(model, props.schema, next);
+      fields.value = next;
     };
     reload();
     watch(
@@ -288,9 +290,10 @@ const JsonEditor = defineComponent({
       () => props.modelValue,
       (nv) => {
         if (emitting || nv === undefined || nv === null) return;
-        if (nv === model) return;
+        if (toRaw(nv) === toRaw(model)) return;
+        const incoming = deepClone(nv);
         Object.keys(model).forEach((k) => delete model[k]);
-        Object.assign(model, deepClone(nv));
+        Object.assign(model, incoming);
         reload();
       },
       { deep: true },
@@ -303,7 +306,7 @@ const JsonEditor = defineComponent({
       model,
       // getter keeps `fields` current across schema reloads
       get fields() {
-        return fields;
+        return fields.value;
       },
       get error() {
         return error.value;
@@ -352,7 +355,10 @@ const JsonEditor = defineComponent({
     // Whether an element is effectively native: either explicitly flagged
     // native in its option, or registered as a known HTML tag string.
     const isEffectivelyNative = (element: ComponentConfig | undefined): boolean => {
-      if (!element || typeof element.option === "function") return false;
+      if (!element) return false;
+      if (typeof element.component === "string" && NATIVE_HTML_TAGS.has(element.component))
+        return true;
+      if (typeof element.option === "function") return false;
       if (element.option.native === true) return true;
       return typeof element.component === "string" && NATIVE_HTML_TAGS.has(element.component);
     };
@@ -390,7 +396,7 @@ const JsonEditor = defineComponent({
     const resolveComp = (element: ComponentConfig | undefined): string | Component => {
       if (!element) return "div";
       const comp = element.component;
-      if (typeof comp !== "string") return comp;
+      if (typeof comp !== "string") return toRaw(comp);
       if (isNativeElement(element)) return comp;
       if (NATIVE_HTML_TAGS.has(comp)) return comp;
       return resolveComponent(comp);
@@ -434,10 +440,6 @@ const JsonEditor = defineComponent({
         return arrayRenderer.render(field, fieldName);
       }
       const fieldValue = getChild(model, fieldName.split("."));
-      if (!field.value) {
-        field.value = fieldValue;
-      }
-
       const customComponent = field.component
         ? ({ component: field.component, option: {} } as ComponentConfig)
         : undefined;
@@ -449,9 +451,21 @@ const JsonEditor = defineComponent({
 
       const children: any[] = [];
       const handleInput = (event: any) => {
+        if (field.disabled || field.readOnly) return;
         let value: unknown;
         if (event && event.target) {
-          value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
+          const target = event.target;
+          if (field.type === "select") {
+            // DOM option values are strings; recover the original JSON scalar.
+            const offset = field.required ? 0 : 1;
+            value = field.items?.[target.selectedIndex - offset]?.value ?? "";
+          } else if (target.type === "checkbox") {
+            value = target.checked;
+          } else if (field.schemaType === "number" || field.schemaType === "integer") {
+            value = target.value === "" ? "" : Number(target.value);
+          } else {
+            value = target.value;
+          }
         } else {
           value = event;
         }
@@ -459,8 +473,10 @@ const JsonEditor = defineComponent({
       };
 
       const baseInputData: RecordAny = {
+        ...field.inputAttrs,
         ref: (el: any) => {
           if (el) inputRefs[fieldName] = el;
+          else delete inputRefs[fieldName];
         },
         onChange: (e: Event) => {
           emit("change", e);
@@ -478,6 +494,14 @@ const JsonEditor = defineComponent({
       // event. Native HTML <input>/<textarea>/<select> still use value/input.
       // Branch on isEffectivelyNative so both paths work.
       if (isEffectivelyNative(element)) {
+        baseInputData.name = field.name;
+        if (element.component === "input") baseInputData.type = field.type;
+        if (field.type === "checkbox" && !field.items) baseInputData.checked = !!fieldValue;
+        // A required boolean is required to exist, not required to equal true.
+        if (field.schemaType !== "boolean") baseInputData.required = field.required;
+        for (const key of ["minlength", "maxlength", "pattern", "min", "max", "step"]) {
+          if (field[key] !== undefined) baseInputData[key] = field[key];
+        }
         baseInputData.value = fieldValue;
         baseInputData.onInput = handleInput;
       } else {
@@ -489,11 +513,6 @@ const JsonEditor = defineComponent({
         case "text":
           if (Object.prototype.hasOwnProperty.call(field, "placeholder")) {
             baseInputData.placeholder = field.placeholder;
-          }
-          break;
-        case "textarea":
-          if (isNativeElement(element)) {
-            baseInputData.innerHTML = fieldValue;
           }
           break;
         case "radio":
@@ -541,7 +560,7 @@ const JsonEditor = defineComponent({
         const labelComp = getComp("label");
         const labelData = elementOptions(labelComp, {}, field, {});
         const labelNodes: any[] = [];
-        if (isNativeElement(labelComp)) {
+        if (isEffectivelyNative(labelComp)) {
           labelNodes.push(
             h("span", { "data-required-field": field.required ? "true" : "false" }, field.label),
           );
@@ -592,10 +611,10 @@ const JsonEditor = defineComponent({
           }
           if (!field || !field.name) return;
           const controls = renderInput(field, field.name);
-          stash[field.name] = controls[0];
+          stash[field.name] = controls;
         });
       };
-      createForm(fields, "");
+      createForm(fields.value, "");
 
       const createNode = (fieldsObj: Fields): any[] => {
         const nodes: any[] = [];
@@ -612,13 +631,13 @@ const JsonEditor = defineComponent({
             const child = createNode(field as unknown as Fields);
             nodes.push(h("div", { class: "sub" }, child));
           } else if (field && field.name && stash[field.name]) {
-            nodes.push(stash[field.name]);
+            nodes.push(...stash[field.name]);
           }
         });
         return nodes;
       };
 
-      return createNode(fields);
+      return createNode(fields.value);
     };
 
     // --- top-level render function -------------------------------------
@@ -686,8 +705,9 @@ const JsonEditor = defineComponent({
           {
             ref: formRef,
             onSubmit: (event: Event) => {
+              event.preventDefault();
               event.stopPropagation();
-              if (checkValidity()) {
+              if (props.noValidate || checkValidity()) {
                 emit("submit", event);
               }
             },
@@ -743,7 +763,7 @@ const JsonEditor = defineComponent({
     const clearErrorMessage = () => {
       error.value = null;
     };
-    const getFields = () => fields;
+    const getFields = () => fields.value;
 
     // Bootstrap the initial data baseline. We deliberately do NOT emit
     // update:modelValue here: this data originated from the parent's
@@ -781,7 +801,11 @@ export default JsonEditor;
 // Usage: JsonEditor.setComponent('email', ElInput)
 //        JsonEditor.setComponent('form', ElForm, ({ vm }) => ({ ... }))
 interface JsonEditorStatic {
-  setComponent: (type: string, component: string | Component, option?: ComponentOption) => void;
+  setComponent: (
+    type: string,
+    component: string | Component,
+    option?: ComponentConfig["option"],
+  ) => void;
 }
 (JsonEditor as unknown as JsonEditorStatic).setComponent = (type, component, option = {}) => {
   components[type] = { component, option };
