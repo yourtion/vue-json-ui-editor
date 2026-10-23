@@ -1,18 +1,18 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
-  closeSync, copyFileSync, mkdirSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync,
+  closeSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync,
 } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(import.meta.url);
 const tsc = require.resolve('typescript/bin/tsc');
-const npm = process.env.npm_execpath;
-assert.ok(npm, 'Run this check through npm run test:package.');
+// npm_execpath points to pnpm when invoked through pnpm; packaging uses npm CLI.
+const npm = 'npm';
 const fixture = mkdtempSync(join(tmpdir(), 'vue-json-ui-editor-consumers-'));
 let commandId = 0;
 
@@ -22,7 +22,9 @@ function capture(args, cwd = fixture) {
   const stderr = openSync(`${log}.err`, 'w');
   let result;
   try {
-    result = spawnSync(process.execPath, args, { cwd, stdio: ['ignore', stdout, stderr] });
+    const command = args[0] === npm ? npm : process.execPath;
+    const commandArgs = args[0] === npm ? args.slice(1) : args;
+    result = spawnSync(command, commandArgs, { cwd, stdio: ['ignore', stdout, stderr] });
   } finally {
     closeSync(stdout);
     closeSync(stderr);
@@ -39,25 +41,19 @@ function capture(args, cwd = fixture) {
 }
 
 try {
-  // Copy exactly the publishable file set, outside the repository. Consumers
-  // cannot fall back to src/, ambient *.vue shims, or the author's tsconfig.
-  const packed = JSON.parse(capture([
-    npm, 'pack', '--dry-run', '--json', '--ignore-scripts', '--cache', join(fixture, 'npm-cache'),
-  ], root))[0];
-  const installed = join(fixture, 'node_modules', 'vue-json-ui-editor');
-  for (const file of packed.files) {
-    const target = join(installed, file.path);
-    mkdirSync(dirname(target), { recursive: true });
-    copyFileSync(join(root, file.path), target);
-  }
-  const manifest = JSON.parse(readFileSync(join(installed, 'package.json'), 'utf8'));
-  // Install declared dependencies via the development installation; no registry
-  // or network access is needed for this consumer matrix.
-  for (const name of Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies })) {
-    const target = join(fixture, 'node_modules', name);
-    mkdirSync(dirname(target), { recursive: true });
-    symlinkSync(realpathSync(join(root, 'node_modules', name)), target, 'junction');
-  }
+  // Install the real tarball, never source files or workspace symlinks.
+  const supplied = process.argv[2];
+  const tarball = supplied ? resolve(supplied) : (() => {
+    const [pack] = JSON.parse(capture([
+      npm, 'pack', '--json', '--ignore-scripts', '--cache', join(fixture, 'npm-cache'),
+      '--pack-destination', fixture,
+    ], root));
+    return join(fixture, pack.filename);
+  })();
+  writeFileSync(join(fixture, 'package.json'), JSON.stringify({ private: true, type: 'module' }));
+  capture([npm, 'install', '--ignore-scripts', '--no-audit', '--no-fund',
+    '--package-lock=false', '--cache', join(fixture, 'npm-cache'),
+    '--registry=https://registry.npmjs.org/', tarball]);
   writeFileSync(join(fixture, 'package.json'), JSON.stringify({ private: true, type: 'module' }));
   const consumer = readFileSync(join(root, 'scripts/fixtures/package-consumer.ts'), 'utf8');
   const cjs = readFileSync(join(root, 'scripts/fixtures/package-consumer.cts'), 'utf8');
