@@ -38,3 +38,13 @@ Public npm OIDC provenance is distinct from GitHub artifact attestations.
 
 Workflow/helper tests and local packaging do not validate live OIDC authorization.
 This change does not bump, publish, tag, create a Release, or configure npm.
+
+## Registry consistency
+
+The manifest publishConfig must use `https://registry.npmjs.org/`. npm applies
+publishConfig over environment configuration; `registry.npmjs.com` produces a
+different OIDC audience and caused the first v3.2.0 attempt to fail with ENEEDAUTH.
+The helper now rejects conflicting registry settings before packing and passes
+an explicit CLI registry to publish. Do not add a token to work around this.
+The failed v3.2.0 tag is immutable; a corrected release needs a new version/tag
+after its checks pass. Always query npm before recovering a partial failure.

@@ -85,7 +85,7 @@
   },
   "homepage": "https://github.com/yourtion/vue-json-ui-editor#readme",
   "publishConfig": {
-    "registry": "https://registry.npmjs.com/"
+    "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2"

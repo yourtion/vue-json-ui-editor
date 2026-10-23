@@ -24,6 +24,10 @@ export function releaseInfo(tag, manifest) {
   ) {
     throw new Error('Expected a named, public npm package');
   }
+  if (manifest.publishConfig?.registry !== undefined
+    && manifest.publishConfig.registry !== 'https://registry.npmjs.org/') {
+    throw new Error('Trusted publishing requires publishConfig.registry https://registry.npmjs.org/');
+  }
   return {
     tag,
     name: manifest.name,
@@ -112,6 +116,8 @@ export function publish(info, tarball, run = execute) {
       run('npm', [
         'publish',
         tarball,
+        '--registry',
+        'https://registry.npmjs.org/',
         '--access',
         'public',
         '--tag',
