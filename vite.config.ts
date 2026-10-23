@@ -1,7 +1,8 @@
-import { defineConfig } from "vite";
+import { readFileSync, writeFileSync } from "node:fs";
 import vue from "@vitejs/plugin-vue";
-import dts from "vite-plugin-dts";
 import { resolve } from "path";
+import { defineConfig } from "vite";
+import dts from "vite-plugin-dts";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -14,8 +15,20 @@ export default defineConfig(({ mode }) => {
         ? [
             dts({
               insertTypesEntry: true,
+              copyDtsFiles: true,
+              cleanVueFileName: true,
+              rollupTypes: true,
+              compilerOptions: { declarationMap: false },
               include: ["src/**/*"],
-              exclude: ["src/**/*.test.*", "src/**/*.spec.*"],
+              exclude: ["src/**/*.test.*", "src/**/*.spec.*", "src/vue-shims.d.ts"],
+              afterBuild() {
+                // One self-contained declaration per module kind. A .d.cts
+                // entry must not re-export an ESM-classified .d.ts file.
+                const declaration = readFileSync(resolve(__dirname, "dist/index.d.ts"), "utf8");
+                for (const extension of ["d.mts", "d.cts"]) {
+                  writeFileSync(resolve(__dirname, `dist/index.${extension}`), declaration);
+                }
+              },
             }),
           ]
         : []),
@@ -35,7 +48,7 @@ export default defineConfig(({ mode }) => {
             entry: resolve(__dirname, "src/index.ts"),
             name: "VueJsonUiEditor",
             formats: ["es", "umd"],
-            fileName: (format) => `vue-json-ui-editor.${format}.js`,
+            fileName: (format) => `vue-json-ui-editor.${format}.${format === "umd" ? "cjs" : "js"}`,
           },
           rollupOptions: {
             external: ["vue"],
