@@ -31,14 +31,14 @@
     "test:package": "npm run build:lib && npm run test:package:consumers",
     "test:package:consumers": "node scripts/check-package.mjs",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest run --coverage",
     "type-check": "vue-tsc --noEmit",
-    "lint": "biome check --write src/",
+    "lint": "biome check src/",
     "format": "biome format --write src/",
     "check": "npm run type-check && npm run lint && npm run test",
-    "tag": "git tag v`node -p 'require(\"./package\").version'`",
-    "prepublishOnly": "npm run check && npm run build:lib",
-    "postpublish": "npm run tag && git push && git push --tags"
+    "prepublishOnly": "npm run check && npm run test:release && npm run build:lib && npm run test:package:consumers",
+    "lint:fix": "biome check --write src/",
+    "test:release": "node --test scripts/npm-release.test.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
@@ -85,5 +85,6 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2"
-  }
+  },
+  "packageManager": "pnpm@10.34.7"
 }
