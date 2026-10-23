@@ -39,8 +39,8 @@
     "prepublishOnly": "npm run check && npm run test:release && npm run build:lib && npm run test:package:consumers",
     "lint:fix": "biome check --write src/",
     "test:release": "node --test scripts/npm-release.test.mjs",
-    "mutation": "stryker run",
-    "mutation:full": "stryker run --force"
+    "mutation": "node .github/scripts/mutation.mjs",
+    "mutation:full": "node .github/scripts/mutation.mjs --force"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",

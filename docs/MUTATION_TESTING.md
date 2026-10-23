@@ -19,12 +19,33 @@ run, explicitly reported in the job summary. Before this PR merges there is no
 trusted main baseline, regardless of local/PR reports. First main success creates
 it; verify that run's cache-save logs before claiming it exists.
 
-The cache compatibility policy is deliberately conservative (`trackedByStryker`
-is empty): all tracked inputs, including tests, helpers, fixtures, snapshots,
-config and lockfile, affect the key. Even documentation/source changes may cause
-full execution. This favors correctness until input tracking is audited further.
-Only the exact compatibility prefix is restored; keys append run ID and attempt.
-Node patch/runtime or untracked external-input changes may need a forced rebuild.
+Local commands and CI use the same semantic-input guard. The policy remains
+conservative (`trackedByStryker` is empty): source, tests, helpers, fixtures,
+snapshots, dependency declarations, installed dependencies, configuration,
+lockfiles and runtime changes force a full configured run. Tracked files and
+non-ignored untracked files are included. Native Stryker change detection alone
+does not guarantee safe reuse after arbitrary source edits.
+
+Only exact, reviewed documentation paths are excluded. The root package version
+is normalized because the current mutation scope and tests do not read it;
+other manifest fields and all dependency declarations remain semantic inputs.
+Review these exceptions in `.github/mutation-cache-inputs.json`. Inspect the
+resolved input manifest before changing the policy:
+
+```bash
+node .github/scripts/baseline-inputs.mjs .github/mutation-cache-inputs.json --list
+```
+
+The `v3` namespace stores `reports/stryker-incremental.json` together with
+`reports/stryker-incremental.json.inputs.json`. Legacy reports, missing metadata,
+changed reports and unsuccessful runs cannot authorize reuse. Only the exact
+compatibility prefix is restored; keys append run ID and attempt. Metadata is
+written only after a successful run with unchanged semantic inputs.
+
+The regular launcher accepts only `--force`. Scoped experiments need a separate
+configuration and ignored report path through `.github/scripts/run-mutation.mjs`,
+with the same report path configured as Stryker's incrementalFile. External state
+that the policy cannot capture still requires an explicit full run.
 Use Actions "Run workflow" with full=true on main to rebuild the shared baseline;
 on other branches it only produces artifacts. Main jobs are not actively cancelled.
 
