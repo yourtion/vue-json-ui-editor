@@ -139,6 +139,8 @@ test('publish the exact validated tarball with explicit channel and no lifecycle
       [
         'publish',
         '/tmp/validated.tgz',
+        '--registry',
+        'https://registry.npmjs.org/',
         '--access',
         'public',
         '--tag',
@@ -225,4 +227,11 @@ test('npm success then GitHub failure can resume without republishing', () => {
   publish(info, '/tmp/validated.tgz', registry);
   completeRelease(info, 'owner/repo', (_, args) => ok(args[0] === 'api' ? '' : 'created'));
   assert.equal(publishes, 1);
+});
+
+test('reject publishConfig registry overrides before any release action', () => {
+  assert.doesNotThrow(() => releaseInfo(info.tag, { ...manifest, publishConfig: { registry: 'https://registry.npmjs.org/' } }));
+  for (const registry of ['https://registry.npmjs.com/', 'https://example.com/', null]) {
+    assert.throws(() => releaseInfo(info.tag, { ...manifest, publishConfig: { registry } }), /publishConfig.registry/);
+  }
 });
