@@ -781,7 +781,11 @@ export default JsonEditor;
 // Usage: JsonEditor.setComponent('email', ElInput)
 //        JsonEditor.setComponent('form', ElForm, ({ vm }) => ({ ... }))
 interface JsonEditorStatic {
-  setComponent: (type: string, component: string | Component, option?: ComponentOption) => void;
+  setComponent: (
+    type: string,
+    component: string | Component,
+    option?: ComponentConfig["option"],
+  ) => void;
 }
 (JsonEditor as unknown as JsonEditorStatic).setComponent = (type, component, option = {}) => {
   components[type] = { component, option };

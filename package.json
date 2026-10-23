@@ -3,14 +3,14 @@
   "version": "3.1.0",
   "description": "A Vue 3 JSON Schema based form editor component with TypeScript support",
   "type": "module",
-  "main": "dist/vue-json-ui-editor.umd.js",
+  "main": "dist/vue-json-ui-editor.umd.cjs",
   "module": "dist/vue-json-ui-editor.es.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/vue-json-ui-editor.es.js",
-      "require": "./dist/vue-json-ui-editor.umd.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/vue-json-ui-editor.umd.cjs"
     }
   },
   "files": [
@@ -22,6 +22,7 @@
     "build:lib": "vue-tsc && vite build --mode lib",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:package": "npm run build:lib && node scripts/check-package.mjs && tsc --noEmit --strict --moduleResolution bundler --module ESNext --target ES2022 --lib ES2022,DOM --types node scripts/fixtures/package-consumer.ts",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "type-check": "vue-tsc --noEmit",

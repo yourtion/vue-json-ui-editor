@@ -220,11 +220,15 @@ import type {
 
 ## Development
 
+CommonJS consumers use `dist/vue-json-ui-editor.umd.cjs`. Direct references to
+the previous `.umd.js` filename need to be updated; package-name imports keep working.
+
 ```bash
 pnpm install      # install dependencies
 pnpm dev          # start the example app (Vite)
 pnpm build:lib    # build the publishable library bundle
 pnpm test         # run unit tests (Vitest)
+pnpm test:package # build + ESM/CommonJS/public TypeScript consumption checks
 pnpm check        # type-check + format + test
 ```
 
