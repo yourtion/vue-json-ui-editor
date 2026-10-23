@@ -222,13 +222,21 @@ import type {
 
 CommonJS consumers use `dist/vue-json-ui-editor.umd.cjs`. Direct references to
 the previous `.umd.js` filename need to be updated; package-name imports keep working.
+Library declarations are bundled without relative or `.vue` imports. Conditional
+exports select `index.d.mts` for ESM and `index.d.cts` for CommonJS; `index.d.ts`
+remains the legacy types fallback.
+
+`test:package` checks an isolated copy of the npm publish file set with
+`skipLibCheck: false`: bundler, NodeNext (`.mts` / `.cts`), and Node16 (`.mts` / `.cts`).
+It also checks default/named imports, `import = require`, typed registration
+callbacks, Vue component compatibility, and ESM/CommonJS runtime loading.
 
 ```bash
 pnpm install      # install dependencies
 pnpm dev          # start the example app (Vite)
 pnpm build:lib    # build the publishable library bundle
 pnpm test         # run unit tests (Vitest)
-pnpm test:package # build + ESM/CommonJS/public TypeScript consumption checks
+pnpm test:package # build + isolated ESM/CJS/bundler/NodeNext/Node16 consumer checks
 pnpm check        # type-check + format + test
 ```
 
