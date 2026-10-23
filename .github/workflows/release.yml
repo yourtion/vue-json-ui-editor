@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  # Serialize versions too, so overlapping stable releases cannot race on latest.
+  group: npm-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Node 24 includes npm >=11.5.1, required for Trusted Publishing.
+          # Omit registry-url so setup-node does not add token authentication.
+          node-version: '24'
+          cache: pnpm
+      - run: node --version && npm --version
+      - name: Validate release tag and commit
+        run: |
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+          node scripts/npm-release.mjs check "$RELEASE_TAG"
+          git merge-base --is-ancestor HEAD origin/main
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm type-check
+      - run: pnpm test:coverage
+      - run: pnpm test:release
+      - run: pnpm build
+      - run: pnpm build:lib
+      - name: Pack and validate public entry points
+        id: pack
+        run: node scripts/npm-release.mjs pack "$RELEASE_TAG" "$RUNNER_TEMP/npm-release"
+      - name: Install and test the exact tarball
+        env:
+          RELEASE_TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: pnpm test:package:consumers "$RELEASE_TARBALL"
+      # Configure npm Trusted Publisher with this repository and workflow filename.
+      # Allowed actions must permit npm publish (direct publishing).
+      # No GitHub environment, no NPM_TOKEN. Public OIDC publish adds provenance.
+      - name: Publish validated tarball to npm
+        env:
+          RELEASE_TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: node scripts/npm-release.mjs publish "$RELEASE_TAG" "$RELEASE_TARBALL"
+      - name: Complete GitHub Release after npm succeeds
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/npm-release.mjs release "$RELEASE_TAG"
