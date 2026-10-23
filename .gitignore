@@ -14,3 +14,9 @@ yarn-error.log*
 *.njsproj
 *.sln
 package-lock.json
+
+# Mutation sandboxes and reports
+.stryker-tmp/
+reports/
+
+.stryker-smoke/
