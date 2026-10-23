@@ -126,9 +126,12 @@ export function createArrayRenderer(deps: ArrayRendererDeps): ArrayRenderer {
         }
       };
       renderFields(rowFields);
-      const cannotRemove =
-        field.disabled || field.readOnly || arr.length <= Number(field.minItems ?? 0);
       const removeBtnData = elementOptions(removeComp, {}, field, {});
+      const cannotRemove =
+        field.disabled ||
+        field.readOnly ||
+        !!removeBtnData.disabled ||
+        arr.length <= Number(field.minItems ?? 0);
       return h("div", { class: "json-editor-array-row" }, [
         h("div", { class: "json-editor-array-row-fields" }, cells),
         h(
@@ -148,7 +151,10 @@ export function createArrayRenderer(deps: ArrayRendererDeps): ArrayRenderer {
 
     const addBtnData = elementOptions(addComp, {}, field, {});
     const cannotAdd =
-      field.disabled || field.readOnly || arr.length >= Number(field.maxItems ?? Infinity);
+      field.disabled ||
+      field.readOnly ||
+      !!addBtnData.disabled ||
+      arr.length >= Number(field.maxItems ?? Infinity);
     return [
       h("div", { class: "json-editor-array" }, [
         // header：标题（field.label）左 + 添加按钮右

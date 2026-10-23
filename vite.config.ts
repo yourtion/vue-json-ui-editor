@@ -14,7 +14,6 @@ export default defineConfig(({ mode }) => {
         ? [
             dts({
               insertTypesEntry: true,
-              copyDtsFiles: true,
               include: ["src/**/*"],
               exclude: ["src/**/*.test.*", "src/**/*.spec.*"],
             }),
@@ -36,7 +35,7 @@ export default defineConfig(({ mode }) => {
             entry: resolve(__dirname, "src/index.ts"),
             name: "VueJsonUiEditor",
             formats: ["es", "umd"],
-            fileName: (format) => `vue-json-ui-editor.${format}.${format === "umd" ? "cjs" : "js"}`,
+            fileName: (format) => `vue-json-ui-editor.${format}.js`,
           },
           rollupOptions: {
             external: ["vue"],

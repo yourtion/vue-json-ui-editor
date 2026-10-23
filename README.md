@@ -183,7 +183,7 @@ JsonEditor.setComponent('date', 'el-date-picker');
 
 This is a **form renderer for a documented JSON Schema subset**, not a JSON Schema
 validator or a complete implementation of any draft. See
-[the support matrix and MCP/Agent integration guide](SCHEMA_SUPPORT.md) before
+[the support matrix](SCHEMA_SUPPORT.md) before
 using arbitrary tool schemas. `oneOf` / `anyOf` choice lists in the historical
 examples are UI extensions, **not standard schema composition**.
 
@@ -217,18 +217,6 @@ JSON number/boolean types. A cleared numeric input remains `''` until validation
 `parseSchema` clones both inputs. The low-level internal `loadFields` API still
 initializes its target model/fields in place. The component retains its existing
 mutable `v-model` behavior; this release does not introduce an immutable model API.
-
-### MCP / Agent parameters
-
-Run `npm run dev` and open the **MCP / Agent** tab. The
-[working example](example/components/ToolParameters.vue) accepts MCP `inputSchema`
-and Agent `function.parameters`, renders the supported subset, and falls back to
-JSON for dynamic keys and unsupported constructs. Ajv validates the original
-schema before generating `{ name, arguments }`. It does not execute tools.
-
-Ajv is an example/test development dependency; the library does not bundle it.
-See [integration details](SCHEMA_SUPPORT.md#mcp--agent-接入) and the
-[prioritized iteration plan](ROADMAP.md).
 
 ### Advanced: reusing the array renderer
 
@@ -269,7 +257,6 @@ pnpm install      # install dependencies
 pnpm dev          # start the example app (Vite)
 pnpm build:lib    # build the publishable library bundle
 pnpm test         # run unit tests (Vitest)
-pnpm test:package # build + ESM/CommonJS/public TypeScript consumption checks
 pnpm check        # type-check + format + test
 ```
 

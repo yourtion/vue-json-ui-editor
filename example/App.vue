@@ -1,19 +1,11 @@
 <template>
   <div id="app">
-    <nav>
-      <button @click="tab = 'tools'">MCP / Agent</button>
-      <button @click="tab = 'subscription'">Subscription</button>
-    </nav>
-    <ToolParameters v-if="tab === 'tools'" />
-    <Subscription v-else />
+    <Subscription/>
   </div>
 </template>
 
 <script setup>
 import Subscription from './components/Subscription.vue';
-import ToolParameters from './components/ToolParameters.vue';
-import { ref } from 'vue';
-const tab = ref('tools');
 </script>
 
 <style>

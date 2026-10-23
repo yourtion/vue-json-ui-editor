@@ -435,11 +435,13 @@ const JsonEditor = defineComponent({
 
     // --- render: per-field input vnode ---------------------------------
     const renderInput = (field: FormField, fieldName: string) => {
+      const fieldValue = getChild(model, fieldName.split("."));
+      // Callbacks need live data, while the parsed descriptor keeps its default.
+      field = { ...field, value: fieldValue };
       // object 数组（items: {type:object}）：渲染可增删行的子表单列表
       if (field.type === "arrayitems" && field.itemsSchema) {
         return arrayRenderer.render(field, fieldName);
       }
-      const fieldValue = getChild(model, fieldName.split("."));
       const customComponent = field.component
         ? ({ component: field.component, option: {} } as ComponentConfig)
         : undefined;
@@ -495,7 +497,9 @@ const JsonEditor = defineComponent({
       // Branch on isEffectivelyNative so both paths work.
       if (isEffectivelyNative(element)) {
         baseInputData.name = field.name;
-        if (element.component === "input") baseInputData.type = field.type;
+        if (element.component === "input" && baseInputData.type === undefined) {
+          baseInputData.type = field.type;
+        }
         if (field.type === "checkbox" && !field.items) baseInputData.checked = !!fieldValue;
         // A required boolean is required to exist, not required to equal true.
         if (field.schemaType !== "boolean") baseInputData.required = field.required;
@@ -510,11 +514,6 @@ const JsonEditor = defineComponent({
       }
 
       switch (field.type) {
-        case "text":
-          if (Object.prototype.hasOwnProperty.call(field, "placeholder")) {
-            baseInputData.placeholder = field.placeholder;
-          }
-          break;
         case "radio":
         case "checkbox":
           if (Object.prototype.hasOwnProperty.call(field, "items")) {
@@ -801,11 +800,7 @@ export default JsonEditor;
 // Usage: JsonEditor.setComponent('email', ElInput)
 //        JsonEditor.setComponent('form', ElForm, ({ vm }) => ({ ... }))
 interface JsonEditorStatic {
-  setComponent: (
-    type: string,
-    component: string | Component,
-    option?: ComponentConfig["option"],
-  ) => void;
+  setComponent: (type: string, component: string | Component, option?: ComponentOption) => void;
 }
 (JsonEditor as unknown as JsonEditorStatic).setComponent = (type, component, option = {}) => {
   components[type] = { component, option };

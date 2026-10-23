@@ -1,7 +1,7 @@
 // 静态 API + expose 实例方法的公开类型。
 // vue-tsc 对函数式 setup + return render 的 expose 类型生成有短板（生成的 d.ts 里
 // expose 方法为空），这里导出类型让消费侧可用。
-import type { ComponentConfig } from "./index";
+import type { ComponentOption } from "./index";
 
 /**
  * JsonEditor 实例方法（通过 template ref 访问）。
@@ -40,5 +40,5 @@ export interface JsonEditorInstance {
  * 用法：`JsonEditor.setComponent('text', ElInput)`
  */
 export interface JsonEditorStatic {
-  setComponent(type: string, component: string | object, option?: ComponentConfig["option"]): void;
+  setComponent(type: string, component: string | object, option?: ComponentOption): void;
 }

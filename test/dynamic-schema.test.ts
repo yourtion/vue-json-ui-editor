@@ -5,6 +5,49 @@ import JsonEditor from '../src/JsonEditor.vue';
 import type { JsonSchema, OptionContext } from '../src/types';
 
 describe('dynamic schema and JSON value types', () => {
+  it('preserves explicit widget type and placeholder registrations', () => {
+    const wrapper = mount(JsonEditor, { props: {
+      schema: { type: 'object', properties: { secret: { type: 'string', attrs: { placeholder: 'schema hint' } } } },
+      components: { text: { component: 'input', option: { type: 'password', placeholder: 'widget hint' } } },
+    } });
+    expect(wrapper.find('input').attributes('type')).toBe('password');
+    expect(wrapper.find('input').attributes('placeholder')).toBe('widget hint');
+    wrapper.unmount();
+  });
+
+  it('passes current field values to option callbacks without mutating parsed defaults', async () => {
+    const wrapper = mount(JsonEditor, { props: {
+      schema: { type: 'object', properties: { name: { type: 'string', default: 'default' } } },
+      modelValue: { name: 'existing' },
+      components: { text: { component: 'input', option: ({ field }: OptionContext) => ({ 'data-current': field.value }) } },
+    } });
+    expect(wrapper.find('input').attributes('data-current')).toBe('existing');
+    await wrapper.find('input').setValue('updated');
+    expect(wrapper.find('input').attributes('data-current')).toBe('updated');
+    expect(((wrapper.vm as any).getFields().name).value).toBe('default');
+    wrapper.unmount();
+  });
+
+  it('honors externally disabled array buttons and current array callback values', async () => {
+    const schema: JsonSchema = { type: 'object', properties: { rows: {
+      type: 'array', items: { type: 'object', properties: { name: { type: 'string' } } },
+    } } };
+    const wrapper = mount(JsonEditor, { props: {
+      schema, modelValue: { rows: [{ name: 'one' }] },
+      components: {
+        arrayadd: { component: 'button', option: { disabled: true, type: 'button' } },
+        arrayremove: { component: 'button', option: () => ({ disabled: true, type: 'button' }) },
+      },
+    } });
+    expect(wrapper.find('.json-editor-array-add').attributes('disabled')).toBeDefined();
+    expect(wrapper.find('.json-editor-array-remove').attributes('disabled')).toBeDefined();
+    await wrapper.setProps({ components: {
+      arrayadd: { component: 'button', option: ({ field }: OptionContext) => ({ type: 'button', 'data-count': (field.value as unknown[]).length }) },
+    } });
+    await wrapper.find('.json-editor-array-add').trigger('click');
+    expect(wrapper.find('.json-editor-array-add').attributes('data-count')).toBe('2');
+    wrapper.unmount();
+  });
   it('keeps native input binding with dynamic option callbacks and untitled help text', async () => {
     const placeholder = reactive({ value: 'before' });
     const wrapper = mount(JsonEditor, { props: {
