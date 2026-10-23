@@ -38,14 +38,16 @@
     "check": "npm run type-check && npm run lint && npm run test",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
     "prepublishOnly": "npm run check && npm run build:lib",
-    "postpublish": "npm run tag && git push && git push --tags"
+    "postpublish": "npm run tag && git push && git push --tags",
+    "mutation": "stryker run",
+    "mutation:full": "stryker run --force"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
     "@types/node": "^20.10.0",
     "@vitejs/plugin-vue": "^5.2.4",
-    "@vitest/coverage-v8": "^1.0.0",
-    "@vitest/ui": "^1.0.0",
+    "@vitest/coverage-v8": "3.2.7",
+    "@vitest/ui": "3.2.7",
     "@vue/test-utils": "^2.4.6",
     "autoprefixer": "^10.4.21",
     "element-plus": "^2.11.1",
@@ -54,9 +56,11 @@
     "typescript": "5.6.2",
     "vite": "^5.0.0",
     "vite-plugin-dts": "^3.6.0",
-    "vitest": "^1.0.0",
+    "vitest": "3.2.7",
     "vue": "^3.5.0",
-    "vue-tsc": "2.0.29"
+    "vue-tsc": "2.0.29",
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/vitest-runner": "10.0.0"
   },
   "peerDependencies": {
     "vue": "^3"
@@ -85,5 +89,6 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2"
-  }
+  },
+  "packageManager": "pnpm@10.34.7"
 }

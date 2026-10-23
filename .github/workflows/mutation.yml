@@ -1,0 +1,112 @@
+name: CI - Mutation Testing
+
+# Adapt main, Node version, package manager and namespace.
+# Copy scripts/baseline-inputs.mjs to .github/scripts/ and
+# assets/mutation-cache-inputs.json to .github/ before using this template.
+# The helper requires Node >=22.20 (node:path.matchesGlob).
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Force a full mutation run and rebuild the baseline"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      MUTATION_NODE_VERSION: "24"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.MUTATION_NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check types, formatting and original coverage
+        run: |
+          pnpm exec biome check src/
+          pnpm type-check
+          pnpm exec vitest run --coverage
+
+      # Hash all Git-tracked inputs by default. Only omit verified Stryker-tracked
+      # source/test files via the explicit policy; new helpers are included.
+      - name: Show baseline input manifest
+        run: node .github/scripts/baseline-inputs.mjs .github/mutation-cache-inputs.json --list
+
+      - name: Compute baseline compatibility key
+        id: baseline-key
+        run: |
+          INPUTS_HASH="$(node .github/scripts/baseline-inputs.mjs .github/mutation-cache-inputs.json)"
+          echo "prefix=mutation-vue-json-v1-${RUNNER_OS}-node${MUTATION_NODE_VERSION}-${INPUTS_HASH}" >> "$GITHUB_OUTPUT"
+
+      # Only the trusted default branch saves this namespace.
+      - name: Restore main mutation baseline
+        id: baseline
+        uses: actions/cache/restore@v4
+        with:
+          path: reports/stryker-incremental.json
+          key: ${{ steps.baseline-key.outputs.prefix }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ steps.baseline-key.outputs.prefix }}-
+
+      - name: Explain baseline availability
+        env:
+          CACHE_MATCH: ${{ steps.baseline.outputs.cache-matched-key }}
+        run: |
+          if [ -z "$CACHE_MATCH" ]; then
+            echo "No compatible trusted main baseline: running full configured scope." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Restored main baseline: $CACHE_MATCH; Stryker decides reusable results." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Run mutation tests
+        env:
+          FORCE_FULL: ${{ inputs.full == true }}
+        run: |
+          if [ "$FORCE_FULL" = "true" ]; then
+            pnpm mutation:full
+          else
+            # Missing baseline naturally falls back to a full run.
+            pnpm mutation
+          fi
+
+      - name: Save main mutation baseline
+        if: success() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/cache/save@v4
+        with:
+          path: reports/stryker-incremental.json
+          key: ${{ steps.baseline.outputs.cache-primary-key }}
+
+      - name: Upload mutation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 14

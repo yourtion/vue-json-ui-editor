@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "plugins": [
+    "@stryker-mutator/vitest-runner"
+  ],
+  "testRunner": "vitest",
+  "vitest": {
+    "configFile": "./vitest.config.ts",
+    "related": false
+  },
+  "mutate": [
+    "src/parser.ts",
+    "src/schema-support.ts",
+    "src/utils.ts",
+    "src/array-renderer.ts"
+  ],
+  "reporters": [
+    "clear-text",
+    "progress",
+    "html",
+    "json"
+  ],
+  "incremental": true,
+  "incrementalFile": "reports/stryker-incremental.json",
+  "concurrency": 2,
+  "timeoutMS": 10000,
+  "tempDirName": ".stryker-tmp",
+  "disableTypeChecks": "**/*.ts"
+}

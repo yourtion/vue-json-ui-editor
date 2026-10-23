@@ -20,6 +20,7 @@ export default defineConfig({
     exclude: ["node_modules", "dist", "build", "lib", "backup", "docs", "example"],
     coverage: {
       provider: "v8",
+      include: ["src/**/*.ts", "src/**/*.vue"],
       reporter: ["text", "json", "html", "lcov"],
       exclude: [
         "node_modules/",
@@ -35,16 +36,11 @@ export default defineConfig({
         "**/coverage/**",
       ],
       thresholds: {
-        global: {
-          branches: 80,
-          functions: 80,
-          lines: 80,
-          statements: 80,
-        },
+        branches: 80,
+        functions: 80,
+        lines: 80,
+        statements: 80,
       },
-    },
-    testTransformMode: {
-      web: ["**/*.{js,ts,jsx,tsx,vue}"],
     },
   },
   define: {
