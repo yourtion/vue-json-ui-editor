@@ -1,4 +1,23 @@
 {
+  "schema": 3,
   "trackedByStryker": [],
-  "alwaysHash": []
+  "alwaysHash": [],
+  "nonSemanticFiles": [
+    {
+      "path": "README.md",
+      "reason": "Reviewed maintainer documentation; not consumed by mutation tests or runtime."
+    },
+    {
+      "path": "docs/MUTATION_TESTING.md",
+      "reason": "Reviewed maintenance-only guide; mutation source, tests and configuration do not read it. The docs directory is excluded from Vitest coverage."
+    }
+  ],
+  "packageVersionFiles": [
+    {
+      "path": "package.json",
+      "reason": "Reviewed four mutated TS modules and current Vitest tests do not read the root package version; audited 3.2.0 to 3.2.1 reused 11/11 mutants with matching fresh results. pnpm lock has no root version metadata."
+    }
+  ],
+  "npmLockVersionFiles": [],
+  "environment": []
 }
