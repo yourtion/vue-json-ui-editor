@@ -10,9 +10,12 @@ export default JsonEditor;
 const JsonEditorWithStatic = JsonEditor as typeof JsonEditor & JsonEditorStatic;
 export { JsonEditorWithStatic as JsonEditor };
 
+export type { ArrayRenderer, ArrayRendererDeps } from "./array-renderer";
+// array renderer（独立模块，可单独复用）
+export { createArrayRenderer } from "./array-renderer";
+export { parseSchema } from "./parser";
+export type { SchemaIssue, SchemaSupport } from "./schema-support";
+export { inspectSchema } from "./schema-support";
 // Export types
 export * from "./types";
 export type { JsonEditorInstance, JsonEditorStatic } from "./types/static";
-// array renderer（独立模块，可单独复用）
-export { createArrayRenderer } from "./array-renderer";
-export type { ArrayRendererDeps, ArrayRenderer } from "./array-renderer";

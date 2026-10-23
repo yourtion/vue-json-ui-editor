@@ -14,7 +14,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "SCHEMA_SUPPORT.md"
   ],
   "scripts": {
     "dev": "vite",

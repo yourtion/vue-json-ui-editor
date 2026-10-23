@@ -44,7 +44,8 @@ export interface JsonSchemaProperty {
   title?: string;
   description?: string;
   default?: unknown;
-  required?: boolean;
+  /** Object schemas use a property-name list; boolean is a legacy UI extension. */
+  required?: boolean | string[];
   disabled?: boolean;
   readOnly?: boolean;
   visible?: boolean;
@@ -67,14 +68,15 @@ export interface JsonSchemaProperty {
   properties?: Record<string, JsonSchemaProperty>;
   attrs?: Record<string, unknown>;
   checked?: boolean;
+  additionalProperties?: boolean | JsonSchemaProperty;
+  /** Retain standard keywords even when the editor cannot render them. */
+  [keyword: string]: unknown;
 }
 
-export interface JsonSchema extends Omit<JsonSchemaProperty, "required"> {
+export interface JsonSchema extends JsonSchemaProperty {
   $schema?: string;
   $id?: string;
-  // At object level, `required` is a list of property names (JSON Schema
-  // standard). This overrides the field-level `required?: boolean` from
-  // JsonSchemaProperty, which expresses whether a single field is required.
+  // At the root, only the standard property-name list is accepted.
   required?: string[];
 }
 
@@ -95,6 +97,8 @@ export interface FormField {
   items?: FormFieldItem[];
   /** object 数组增删行：items 子对象 schema（type:object + properties） */
   itemsSchema?: JsonSchemaProperty;
+  /** Isolated widget attributes, without internal field metadata. */
+  inputAttrs?: Record<string, unknown>;
   minlength?: number;
   maxlength?: number;
   pattern?: string;

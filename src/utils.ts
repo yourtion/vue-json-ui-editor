@@ -55,7 +55,12 @@ export const deepClone = <T>(obj: T): T => {
     const copy: RecordAny = Array.isArray(value) ? [] : {};
     seen.set(value as object, copy);
     for (const key of Object.keys(value)) {
-      copy[key] = clone((value as RecordAny)[key]);
+      Object.defineProperty(copy, key, {
+        value: clone((value as RecordAny)[key]),
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
     }
     return copy;
   };
@@ -68,6 +73,7 @@ export function getExtendibleLeaf(
   n: string,
   initIt: boolean,
 ): RecordAny | undefined {
+  assertSafePath([n]);
   const v: unknown = obj[n];
   // 已是对象或数组 → 直接返回作为可扩展容器（数组也允许继续往内写入索引）
   if (v && typeof v === "object") {
@@ -87,6 +93,7 @@ export function getExtendibleLeaf(
 }
 
 export const getChild = (data: RecordAny, ns: string[]): unknown => {
+  assertSafePath(ns);
   if (data === null || data === undefined) return undefined;
   if (ns.length === 1) return data[ns[0]];
   let obj: unknown = data[ns[0]];
@@ -109,6 +116,7 @@ function containerFor(nextSeg: string): RecordAny | unknown[] {
 }
 
 export const initChild = (data: RecordAny, ns: string[]): RecordAny => {
+  assertSafePath(ns);
   if (ns.length === 1) {
     const ret = getExtendibleLeaf(data, ns[0], true);
     if (ret === undefined) {
@@ -139,7 +147,8 @@ export const initChild = (data: RecordAny, ns: string[]): RecordAny => {
 };
 
 export const setVal = (data: RecordAny, n: string | string[], v: unknown): unknown => {
-  const ns = Array.isArray(n) ? n : n.split(".");
+  const ns = Array.isArray(n) ? [...n] : n.split(".");
+  assertSafePath(ns);
   const key = ns.pop() as string;
   // 确保容器类型正确：若 key 是数组索引，最末层容器必须是数组
   if (ns.length > 0 && isArrayIndex(key)) {
@@ -161,3 +170,10 @@ export const setVal = (data: RecordAny, n: string | string[], v: unknown): unkno
   (ret as RecordAny)[key] = v;
   return v;
 };
+
+/** Dotted field paths must never traverse JavaScript prototype objects. */
+function assertSafePath(path: string[]): void {
+  if (path.some((part) => ["__proto__", "prototype", "constructor"].includes(part))) {
+    throw new TypeError("Unsafe field path");
+  }
+}
