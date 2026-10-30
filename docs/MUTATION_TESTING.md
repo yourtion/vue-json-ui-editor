@@ -13,11 +13,23 @@ are pinned and must be upgraded together after real runner verification. Stryker
 10 requires Node >=22; project CI/development use Node 24. This does not change
 the published Vue library's runtime minimum. Related-only test selection stays off.
 
-CI reads only trusted main baselines. PR jobs never save the shared namespace;
-main saves only on success. Missing/incompatible baseline means a full configured
-run, explicitly reported in the job summary. Before this PR merges there is no
-trusted main baseline, regardless of local/PR reports. First main success creates
-it; verify that run's cache-save logs before claiming it exists.
+Mutation CI runs automatically on pushes to main and through manual
+`workflow_dispatch`; PRs retain the separate CI workflow's lint, type checks,
+ordinary tests (including schema contracts), coverage thresholds, release-helper
+tests, builds and package-consumer checks. Mutation is not an automatic PR check.
+
+CI reads only trusted main baselines. Only successful main push or main manual
+runs save the shared namespace. Missing/incompatible baseline means a full
+configured run, explicitly reported in the job summary. Verify a successful main
+run's cache-save logs before claiming a shared baseline exists.
+
+Before merging this scheduling change, maintainers must verify branch protection,
+repository/organization rulesets and any aggregate checks. If the `mutation` check
+from `CI - Mutation Testing` is required for PRs, remove or replace that exact
+requirement first; otherwise PRs can wait indefinitely for a check that no longer
+runs. Other required checks stay in place. A manual workflow run is review evidence,
+not a replacement for a required PR check. This change does not edit protection
+settings or create a skipped/synthetic mutation result.
 
 Local commands and CI use the same semantic-input guard. The policy remains
 conservative (`trackedByStryker` is empty): source, tests, helpers, fixtures,
@@ -46,8 +58,25 @@ The regular launcher accepts only `--force`. Scoped experiments need a separate
 configuration and ignored report path through `.github/scripts/run-mutation.mjs`,
 with the same report path configured as Stryker's incrementalFile. External state
 that the policy cannot capture still requires an explicit full run.
-Use Actions "Run workflow" with full=true on main to rebuild the shared baseline;
-on other branches it only produces artifacts. Main jobs are not actively cancelled.
+Use Actions "Run workflow" with full=true on main to rebuild the shared baseline.
+For a high-risk same-repository PR, select its branch in Actions or run:
+
+```bash
+gh workflow run mutation.yml --ref <branch> -f full=true
+```
+
+Confirm the actual checkout SHA matches the intended PR head. Other branches only
+read compatible main baselines and produce artifacts; they never save a shared
+baseline. Fork branches require the project's trusted review process; do not use
+`pull_request_target` to execute their code. The workflow must exist on the default
+branch before manual dispatch is available.
+
+Main and manual jobs are not actively cancelled. Runs for the same workflow/ref
+share a concurrency group; GitHub may replace pending runs, so this is not a FIFO
+queue or a guarantee that every commit runs. On a main failure, the maintainer
+reviews the retained report, fixes the cause, and reruns the workflow (full when
+needed); ordinary CI success does not replace a failed mutation result. Failed
+runs never save the shared baseline.
 
 No mutation score break threshold is imposed on initial integration. Successful
 execution is not a quality gate or a claim that every survivor is a defect.
