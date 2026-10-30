@@ -1,14 +1,13 @@
 name: CI - Mutation Testing
 
+# PRs keep the ordinary CI checks; mutation runs on main or by manual dispatch.
 on:
-  pull_request:
-    branches: ["main"]
   push:
     branches: ["main"]
   workflow_dispatch:
     inputs:
       full:
-        description: "Force a full mutation run and rebuild the baseline"
+        description: "Force a full run (only main updates the shared baseline)"
         type: boolean
         default: false
 
@@ -17,7 +16,7 @@ permissions:
 
 concurrency:
   group: mutation-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 jobs:
   mutation:
@@ -59,7 +58,7 @@ jobs:
           INPUTS_HASH="$(node .github/scripts/baseline-inputs.mjs .github/mutation-cache-inputs.json)"
           echo "prefix=mutation-vue-json-v3-${RUNNER_OS}-node${MUTATION_NODE_VERSION}-${INPUTS_HASH}" >> "$GITHUB_OUTPUT"
 
-      # Only the trusted default branch saves this namespace.
+      # Branch dispatches may read main caches; only successful main runs save.
       - name: Restore main mutation baseline
         id: baseline
         uses: actions/cache/restore@v4
@@ -93,7 +92,7 @@ jobs:
           fi
 
       - name: Save main mutation baseline
-        if: success() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: actions/cache/save@v4
         with:
           path: |
